@@ -1,12 +1,11 @@
 {
 "variables": 
 {
-	"iso_url": "http://mirrors.gigenet.com/centos/6.7/isos/x86_64/CentOS-6.7-x86_64-bin-DVD1.iso",
-	"iso_checksum": "51f90e8ddd2ea199780065eaf75130ad",
+	"iso_url": "http://mirrors.gigenet.com/centos/6.8/isos/x86_64/CentOS-6.8-x86_64-bin-DVD1.iso",
+	"iso_checksum": "f73c2c4dd333c202ca85ea66120cacdf",
 	"headless": "false",
 	"vm_basename":"HDB-Sandbox",
 	"hdbversion":"2.0"
-
 },
 "builders": [
 {
@@ -88,15 +87,14 @@
  
 {
 	"type": "shell",
-	"inline": ["/bin/sed -i 's/sandbox.hortonworks.com sandbox.hortonworks.com/sandbox.hortonworks.com sandbox/' /etc/hosts",
-		       "curl -sSL https://gist.github.com/abajwa-hw/32e0714d9f5f4b8910e1cfc865dbc004/raw | sudo -E sh"]
+	"inline": ["curl -sSL https://gist.githubusercontent.com/dbbaskette/f090ae56fd781fe6d080e4f7756e51b7/raw | sudo -E sh"]
 }
 ],
   "post-processors": [
 
 {
   "type": "compress",
-  "output": "{{user `vm_basename`}}-{{user `hdbversion`}}-{{build_name}}.zip",
+  "output": "{{user `vm_basename`}}-{{user `hdbversion`}}-{{build_name}}-{{isotime \"2006010203040506\"}}.zip",
   "compression_level": 9,
   "keep_input_artifact":true,
   "only": ["vmware"]
