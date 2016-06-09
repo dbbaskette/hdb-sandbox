@@ -1,10 +1,9 @@
 # hdb-sandbox
-##NOT CURRENTLY WORKING
 # Pivotal HDB on Hortonworks HDP Sandbox
 
 <img src="https://raw.githubusercontent.com/dbbaskette/hdb-on-hdp/gh-pages/images/hdb.jpeg?token=ACbVkUI1WnnUpyJAOIAZbDH4AHJsBj63ks5WM91-wA%3D%3D" width="300">
 
-#### Packer-Based Build Process for building a Hortonworks HDP Sandbox with Pivotal HDB
+#### Packer-Based Build Process for building a Hortonworks HDP Sandbox with Pivotal HDB + MADlib
 
 **Requirements:**  
 
