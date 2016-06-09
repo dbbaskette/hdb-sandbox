@@ -7,8 +7,9 @@
 
 **Requirements:**  
 
-* Packer  
-* VMware Fusion
+*  Packer  
+*  VMware Fusion
+*  PIVNET API Key
 
 This release only works for the vmware version.
 
