@@ -5,7 +5,8 @@
 	"iso_checksum": "f73c2c4dd333c202ca85ea66120cacdf",
 	"headless": "false",
 	"vm_basename":"HDB-Sandbox",
-	"hdbversion":"2.0"
+	"hdbversion":"2.0",
+	"pivnet_api_key":"1iis5xqtAfi4bpq9Mivj"
 },
 "builders": [
 {
@@ -14,7 +15,9 @@
 	"region": "us-east-1",
 	"source_ami": "ami-a87a70c2",
 	"instance_type": "m4.xlarge",
-	"ssh_username": "gpadmin",
+	"ssh_username": "root",
+	"ssh_username": "hadoop",
+
 	"ssh_pty": "true",
 	"ami_name": "hdb-cloud-sandbox {{user `hdbversion`}}-{{build_name}}",
 	"ami_description": "hdb-cloud-sandbox {{user `hdbversion`}}-{{build_name}} {{timestamp}}",
@@ -37,8 +40,8 @@
 	"iso_url": "{{user `iso_url`}}",
 	"iso_checksum": "{{user `iso_checksum`}}",
 	"iso_checksum_type": "md5",
-	"ssh_username": "gpadmin",
-	"ssh_password": "gpadmin",
+	"ssh_username": "root",
+	"ssh_password": "hadoop",
 	"ssh_port": 22,
 	"ssh_pty": "true",
 	"ssh_wait_timeout": "10000s",
@@ -69,8 +72,8 @@
 	"iso_url": "{{user `iso_url`}}",
 	"iso_checksum": "{{user `iso_checksum`}}",
 	"iso_checksum_type": "md5",
-	"ssh_username": "gpadmin",
-	"ssh_password": "gpadmin",
+	"ssh_username": "root",
+	"ssh_password": "hadoop",
 	"ssh_port": 22,
 	"ssh_pty": "true",
 	"ssh_wait_timeout": "10000s",
@@ -87,7 +90,9 @@
  
 {
 	"type": "shell",
-	"inline": ["curl -sSL https://gist.githubusercontent.com/dbbaskette/f090ae56fd781fe6d080e4f7756e51b7/raw | sudo -E sh"]
+	"inline": ["wget -qOscript https://gist.githubusercontent.com/dbbaskette/f090ae56fd781fe6d080e4f7756e51b7/raw && chmod +x ./script && ./script {{user `pivnet_api_key`}} "]
+
+
 }
 ],
   "post-processors": [
@@ -102,3 +107,6 @@
   ]
 
 }
+
+
+	#"inline": ["curl -sSL https://gist.githubusercontent.com/dbbaskette/f090ae56fd781fe6d080e4f7756e51b7/raw | sudo -E sh"]
