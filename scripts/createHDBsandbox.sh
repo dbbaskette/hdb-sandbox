@@ -108,17 +108,21 @@ sed -i "s/rhgb//g" /boot/grub/grub.conf
 echo "setterm -blank 0" >> /etc/rc.local
 echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
 
-sed -i "/greet_win.addstr(2, 2, \"http:\/\/hortonworks.com/a greet_win.addstr(3, 2, \"---------------------------------------------\");greet_win.addstr(4, 2, \"username: root      password:  hadoop\");greet_win.addstr(5, 2, \"username: gpadmin   password:  gpadmin\")" /usr/lib/hue/tools/start_scripts/splash.py
-sed -i 's/greet_win.addstr(3, 2/    greet_win.addstr(3, 2/' /usr/lib/hue/tools/start_scripts/splash.py
 
-sed -i "/ip_win.addstr(4, 2, \"http:\/\/%s:8080/a ip_win.addstr(5, 2, \"username: admin   password: admin\")" /usr/lib/hue/tools/start_scripts/splash.py
-sed -i "s/ip_win.addstr(5, 2, \"username:/        ip_win.addstr(5, 2, \"username:/" /usr/lib/hue/tools/start_scripts/splash.py
+# MOVED THESE CHANGE TO ORIGINAL SPLASH FILE
+#sed -i "/greet_win.addstr(2, 2, \"http:\/\/hortonworks.com/a greet_win.addstr(3, 2, \"---------------------------------------------\");greet_win.addstr(4, 2, \"username: root      password:  hadoop\");greet_win.addstr(5, 2, \"username: gpadmin   password:  gpadmin\")" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i 's/greet_win.addstr(3, 2/    greet_win.addstr(3, 2/' /usr/lib/hue/tools/start_scripts/splash.py
 
-sed -i "/ip_win.addstr(5, 2, \"username:/aip_win.addstr(7, 2, \"To Launch Apache Zeppelin enter this address in browser:\")" /usr/lib/hue/tools/start_scripts/splash.py
-sed -i "s/ip_win.addstr(7, 2, \"To Launch/        ip_win.addstr(7, 2, \"To Launch/" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i "/ip_win.addstr(4, 2, \"http:\/\/%s:8080/a ip_win.addstr(5, 2, \"username: admin   password: admin\")" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i "s/ip_win.addstr(5, 2, \"username:/        ip_win.addstr(5, 2, \"username:/" /usr/lib/hue/tools/start_scripts/splash.py
 
-sed -i "/ip_win.addstr(7, 2, \"To Launch/a ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)" /usr/lib/hue/tools/start_scripts/splash.py
-sed -i "s/ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)/        ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)/" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i "/ip_win.addstr(5, 2, \"username:/aip_win.addstr(7, 2, \"To Launch Apache Zeppelin enter this address in browser:\")" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i "s/ip_win.addstr(7, 2, \"To Launch/        ip_win.addstr(7, 2, \"To Launch/" /usr/lib/hue/tools/start_scripts/splash.py
+
+#sed -i "/ip_win.addstr(7, 2, \"To Launch/a ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)" /usr/lib/hue/tools/start_scripts/splash.py
+#sed -i "s/ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)/        ip_win.addstr(8, 2, \"http:\/\/%s:9995\" \% ip)/" /usr/lib/hue/tools/start_scripts/splash.py
+
+#sed -i "s/curses.endwin()/ curses.endwin()/"  /usr/lib/hue/tools/start_scripts/splash.py
 
 echo "python /usr/lib/hue/tools/start_scripts/splash.py" >> /etc/rc.local
  
