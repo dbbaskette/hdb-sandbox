@@ -184,7 +184,7 @@ echo "Update Zeppelin configs for HAWQ"
 curl -sSL https://gist.githubusercontent.com/abajwa-hw/0fd9772c916fac3fc5912f462168799a/raw | sudo -E python
 
 echo "Pointing Zeppelin at gpadmin database by default"
-sed -i 's/^postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
 echo "Downloading demo HAWQ demo notebook and restarting Zeppelin"
 notebook_id=2BQPFYB1X
