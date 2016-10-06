@@ -7,15 +7,13 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-#export HDB_DOWNLOAD_LOC=https://www.dropbox.com/s/5rzhqxajbd5pq9k/hdb-2.0.0.0-22126.tar.gz
-#export HDB_AMBARI_DOWNLOAD_LOC=https://www.dropbox.com/s/6ik8f3r472f7mzq/hdb-ambari-plugin-2.0.0-448.tar.gz
 export PIV_NET_HDB=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4405/download
 export PIV_NET_PLUGIN=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4404/download
 export PIV_NET_MADLIB=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4327/download
 export PIV_NET_EXTENSIONS=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4675/download
 
 #Customize which services to deploy and other configs
-export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE ZEPPELIN SPARK HAWQ PXF"
+export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE SPARK HAWQ PXF HBASE ZEPPELIN"
 export ambari_password="admin"
 export cluster_name=hdp
 export host_count=1
@@ -41,11 +39,10 @@ yum install -y epel-release
 yum install -y python-pip
 pip install sh
 
-#install bootstrap - for now use Dan's fork with _ fix
 yum install -y git python-argparse
 cd ~
-#git clone https://github.com/seanorama/ambari-bootstrap.git
-git clone https://github.com/dbbaskette/ambari-bootstrap.git
+git clone https://github.com/seanorama/ambari-bootstrap.git
+#git clone https://github.com/dbbaskette/ambari-bootstrap.git
 
  
 #install Ambari
@@ -147,7 +144,10 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
 
     },
     "hawq-site":{
-        "hawq_master_address_port":"10432"
+        "hawq_master_address_port":"10432",
+        "hawq_master_temp_directory":"/data/hawq/tmp",
+        "hawq_segment_temp_directory":"/data/hawq/tmp"
+
     },
     "hdfs-client":{
         "dfs.default.replica":"1"
@@ -227,6 +227,7 @@ echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
 echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
 echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
 echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
+
 
 
 # ADD PG defaults to .bashrc

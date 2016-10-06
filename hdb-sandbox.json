@@ -5,7 +5,7 @@
     "headless": "false",
     "vm_basename": "HDB-Sandbox",
     "hdbversion": "2.0",
-    "pivnet_api_key": "INSERT PIVNET KEY HERE"
+    "pivnet_api_key": "j6vsEAQ9D1byXpy6e7aQ"
   },
   "builders": [
     {

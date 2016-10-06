@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This script is designed to permanently disable Autostart of many of the Hadoop Components.
+ # This script is designed to permanently disable Autostart of many of the Hadoop Components.
 # After running it, Only HDFS, YARN, AMBARI, HAWQ and PXF will Autostart
 
 sed -i -e 's/all: Startup Ambari/all: Startup Ambari ##/g' /usr/lib/hue/tools/start_scripts/start_deps.mf
