@@ -7,16 +7,18 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-export PIV_NET_HDB=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4405/download
-export PIV_NET_PLUGIN=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4404/download
-export PIV_NET_MADLIB=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4327/download
-export PIV_NET_EXTENSIONS=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/1695/product_files/4675/download
+export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/2397
+export PIV_NET_HDB=$PIV_NET_BASE/product_files/7634/download
+export PIV_NET_ADDON=$PIV_NET_BASE/product_files/7633/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/7727/download
+export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/2397/eula_acceptance
 
 #Customize which services to deploy and other configs
-export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE SPARK HAWQ PXF HBASE ZEPPELIN"
+export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN"
 export ambari_password="admin"
 export cluster_name=hdp
 export host_count=1
+export ambari_stack_version=2.5
 
 
 ################
@@ -41,8 +43,8 @@ pip install sh
 
 yum install -y git python-argparse
 cd ~
-git clone https://github.com/seanorama/ambari-bootstrap.git
-#git clone https://github.com/dbbaskette/ambari-bootstrap.git
+#git clone https://github.com/seanorama/ambari-bootstrap.git
+git clone https://github.com/dbbaskette/ambari-bootstrap.git
 
  
 #install Ambari
@@ -50,34 +52,39 @@ echo "Installing Ambari..."
 install_ambari_server=true ~/ambari-bootstrap/ambari-bootstrap.sh
 
 #install zeppelin service defn
-git clone https://github.com/hortonworks-gallery/ambari-zeppelin-service.git /var/lib/ambari-server/resources/stacks/HDP/2.4/services/ZEPPELIN
-sed -i.bak '/dependencies for all/a \  "ZEPPELIN_MASTER-START": ["NAMENODE-START", "DATANODE-START"],' /var/lib/ambari-server/resources/stacks/HDP/2.4/role_command_order.json
+#git clone https://github.com/hortonworks-gallery/ambari-zeppelin-service.git /var/lib/ambari-server/resources/stacks/HDP/2.4/services/ZEPPELIN
+#sed -i.bak '/dependencies for all/a \  "ZEPPELIN_MASTER-START": ["NAMENODE-START", "DATANODE-START"],' /var/lib/ambari-server/resources/stacks/HDP/2.4/role_command_order.json
+
+#ACCEPT EULA
+export headers="{Authorization:Token $1}"
+curl -X POST --header $headers $PIV_NET_EULA
 
 #HAWQ setup
 echo "Setting up HAWQ service defn..."
 echo "GOT API KEY " $1
 mkdir /staging
 chmod a+rx /staging
-cd /staging
-wget -O "hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
-wget -O "hdb-ambari-plugin.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
-wget -O "madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
+#wget -O "hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
+#wget -O "hdb-ambari-plugin.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
+wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
 
-#wget ${HDB_AMBARI_DOWNLOAD_LOC}
-#tar -xvzf /staging/hdb-2.0.0.0-*.tar.gz -C /staging/
-#tar -xvzf /staging/hdb-ambari-plugin-2.0.0-*.tar.gz -C /staging/
+# TEMP DOWNLOAD OF NEW CODE
+wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
+wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
+
 tar -xvzf /staging/hdb.tar.gz -C /staging/
-tar -xvzf /staging/hdb-ambari-plugin.tar.gz -C /staging/
+tar -xvzf /staging/hdb-addons.tar.gz -C /staging/
 tar -xvzf /staging/madlib.tar.gz -C /staging/
 
 yum install -y httpd
 service httpd start
 chkconfig httpd on
-cd /staging/hdb*
+cd /staging/hdb-2*
 ./setup_repo.sh
-cd /staging/hdb-ambari-plugin*
+cd /staging/hdb-add*
 ./setup_repo.sh  
-yum install -y hdb-ambari-plugin
+yum install -y hawq-ambari-plugin
+/var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
 
 
 #restart Ambari
@@ -152,6 +159,10 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
     "hdfs-client":{
         "dfs.default.replica":"1"
     },
+    "yarn-site":{
+        "yarn.scheduler.minimum-allocation-mb":"320"
+    },
+
     "hawq-env":{
         "hawq_password":"gpadmin",
         "vm.overcommit_memory":"1"
@@ -170,6 +181,8 @@ EOF
 
 echo "Starting cluster install..."
 
+
+
 #generate BP using Ambari recommendation API and deploy HDP
 cd ~/ambari-bootstrap/deploy/
 ./deploy-recommended-cluster.bash
@@ -182,18 +195,24 @@ ambari_wait_request_complete 1
 
 
 ##post install steps
+
+sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
+
 cd ~
 
 echo "Update Zeppelin configs for HAWQ"
-curl -sSL https://gist.githubusercontent.com/abajwa-hw/0fd9772c916fac3fc5912f462168799a/raw | sudo -E python
+#curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
 
 echo "Pointing Zeppelin at gpadmin database by default"
 sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
+#read -p "Press any key to continue... " -n1 -s
+
+
 echo "Downloading demo HAWQ demo notebook and restarting Zeppelin"
 notebook_id=2BQPFYB1X
-sudo -u zeppelin mkdir /usr/hdp/current/zeppelin-server/lib/notebook/$notebook_id
-sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0c5889783ecf0cd967ab/raw -O /usr/hdp/current/zeppelin-server/lib/notebook/$notebook_id/note.json
+sudo -u zeppelin  mkdir /usr/hdp/current/zeppelin-server/notebook/$notebook_id
+sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0c5889783ecf0cd967ab/raw -O /usr/hdp/current/zeppelin-server/notebook/$notebook_id/note.json
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Stop ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "INSTALLED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 sleep 30
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Start ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "STARTED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
@@ -202,14 +221,14 @@ echo "import data into hive"
 cd /tmp
 wget https://raw.githubusercontent.com/abajwa-hw/security-workshops/master/data/sample_07.csv
 
-hive -e "CREATE TABLE sample_07 (
+sudo -u hdfs hive -e "CREATE TABLE sample_07 (
 code string ,
 description string ,
 total_emp int ,
 salary int )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' STORED AS TextFile; "
 
-hive -e "load data local inpath '/tmp/sample_07.csv' into table sample_07;"
+sudo -u hdfs hive -e "load data local inpath '/tmp/sample_07.csv' into table sample_07;"
 
 echo "import retail sample data from pivotal github"
 cd /tmp
@@ -217,7 +236,7 @@ git clone https://github.com/pivotalsoftware/pivotal-samples.git
 cd /tmp/pivotal-samples/sample-data/
 sudo -u hdfs ./load_data_to_HDFS.sh
 sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
-hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
+sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
 
 echo "Configure local connections to HAWQ and reload HAWQ configs.."
 
@@ -235,8 +254,18 @@ sudo -u gpadmin bash -c "echo 'export PGPORT=10432' >> /home/gpadmin/.bashrc"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
 echo "Installing MADlib"
-sudo -u gpadmin bash -c "export PGPORT=10432;source /usr/local/hawq/greenplum_path.sh; createdb gpadmin"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; gppkg -i /staging/madlib*.gppkg"
+wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
+chmod +x /staging/hawq_install.sh
+echo "sandbox.hortonworks.com" >> /staging/hostsfile
+
+#read -p "Press any key to continue... " -n1 -s
+
+
+tar xvf /staging/madlib*.gppkg -C /staging/
+/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
+
+chmod +x /staging/remove_compression.sh
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
 
