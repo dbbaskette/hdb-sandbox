@@ -176,7 +176,12 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
         "ipc.client.connection.maxidletime": "3600000",
         "ipc.client.connect.timeout": "300000",
         "ipc.server.listen.queue.size": "3300"
+    },
+    "zeppelin-config": {
+    "zeppelin.interpreters": "org.apache.zeppelin.spark.SparkInterpreter,org.apache.zeppelin.spark.PySparkInterpreter,org.apache.zeppelin.spark.SparkSqlInterpreter,org.apache.zeppelin.spark.DepInterpreter,org.apache.zeppelin.markdown.Markdown,org.apache.zeppelin.angular.AngularInterpreter,org.apache.zeppelin.shell.ShellInterpreter,org.apache.zeppelin.jdbc.JDBCInterpreter,org.apache.zeppelin.phoenix.PhoenixInterpreter,org.apache.zeppelin.livy.LivySparkInterpreter,org.apache.zeppelin.livy.LivyPySparkInterpreter,org.apache.zeppelin.livy.LivySparkRInterpreter,org.apache.zeppelin.livy.LivySparkSQLInterpreter,org.apache.zeppelin.postgresql.PostgreSqlInterpreter"
     }
+
+
   }
 }
 EOF
