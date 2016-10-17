@@ -14,7 +14,7 @@ export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/7727/download
 export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/2397/eula_acceptance
 
 #Customize which services to deploy and other configs
-export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN"
+export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ SPARK ZEPPELIN"
 export ambari_password="admin"
 export cluster_name=hdp
 export host_count=1
@@ -64,13 +64,13 @@ echo "Setting up HAWQ service defn..."
 echo "GOT API KEY " $1
 mkdir /staging
 chmod a+rx /staging
-#wget -O "hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
-#wget -O "hdb-ambari-plugin.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
+wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
+wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_ADDON
 wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
 
 # TEMP DOWNLOAD OF NEW CODE
-wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
-wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
+#wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
+#wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
 
 tar -xvzf /staging/hdb.tar.gz -C /staging/
 tar -xvzf /staging/hdb-addons.tar.gz -C /staging/
@@ -84,7 +84,7 @@ cd /staging/hdb-2*
 cd /staging/hdb-add*
 ./setup_repo.sh  
 yum install -y hawq-ambari-plugin
-/var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
+#/var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
 
 
 #restart Ambari
@@ -150,30 +150,21 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
         "dfs.replication": "1"
 
     },
-    "hawq-site":{
-        "hawq_master_address_port":"10432",
-        "hawq_master_temp_directory":"/data/hawq/tmp",
-        "hawq_segment_temp_directory":"/data/hawq/tmp"
-
-    },
-    "hdfs-client":{
-        "dfs.default.replica":"1"
-    },
     "yarn-site":{
         "yarn.scheduler.minimum-allocation-mb":"320"
     },
 
-    "hawq-env":{
-        "hawq_password":"gpadmin",
-        "vm.overcommit_memory":"1"
 
-    },
     "core-site": {
         "hadoop.proxyuser.root.groups": "*",
         "hadoop.proxyuser.root.hosts": "*",        
         "ipc.client.connection.maxidletime": "3600000",
         "ipc.client.connect.timeout": "300000",
         "ipc.server.listen.queue.size": "3300"
+    },
+
+    "zeppelin-config": {
+    "zeppelin.interpreters": "org.apache.zeppelin.spark.SparkInterpreter,org.apache.zeppelin.spark.PySparkInterpreter,org.apache.zeppelin.spark.SparkSqlInterpreter,org.apache.zeppelin.spark.DepInterpreter,org.apache.zeppelin.markdown.Markdown,org.apache.zeppelin.angular.AngularInterpreter,org.apache.zeppelin.shell.ShellInterpreter,org.apache.zeppelin.jdbc.JDBCInterpreter,org.apache.zeppelin.phoenix.PhoenixInterpreter,org.apache.zeppelin.livy.LivySparkInterpreter,org.apache.zeppelin.livy.LivyPySparkInterpreter,org.apache.zeppelin.livy.LivySparkRInterpreter,org.apache.zeppelin.livy.LivySparkSQLInterpreter,org.apache.zeppelin.postgresql.PostgreSqlInterpreter"
     }
   }
 }
@@ -200,13 +191,16 @@ sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
 
 cd ~
 
-echo "Update Zeppelin configs for HAWQ"
-#curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
-
-echo "Pointing Zeppelin at gpadmin database by default"
-sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+#echo "Update Zeppelin configs for HAWQ"
 
 #read -p "Press any key to continue... " -n1 -s
+
+curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
+
+
+#echo "Pointing Zeppelin at gpadmin database by default"
+#sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+
 
 
 echo "Downloading demo HAWQ demo notebook and restarting Zeppelin"
@@ -238,36 +232,40 @@ sudo -u hdfs ./load_data_to_HDFS.sh
 sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
 sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
 
-echo "Configure local connections to HAWQ and reload HAWQ configs.."
+#echo "Configure local connections to HAWQ and reload HAWQ configs.."
 
-ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+#ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
 
-echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
-echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
-echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
-echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
+#echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
+#echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
+#echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
+#echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
 
 
 
 # ADD PG defaults to .bashrc
 sudo -u gpadmin bash -c "echo 'export PGPORT=10432' >> /home/gpadmin/.bashrc"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
-echo "Installing MADlib"
-wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
-chmod +x /staging/hawq_install.sh
-echo "sandbox.hortonworks.com" >> /staging/hostsfile
+#echo "Installing MADlib"
+#wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
+#chmod +x /staging/hawq_install.sh
+#echo "sandbox.hortonworks.com" >> /staging/hostsfile
 
 #read -p "Press any key to continue... " -n1 -s
 
 
-tar xvf /staging/madlib*.gppkg -C /staging/
-/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
+#tar xvf /staging/madlib*.gppkg -C /staging/
+#/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
 
-chmod +x /staging/remove_compression.sh
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
+#chmod +x /staging/remove_compression.sh
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
+
+
+
+
 
 #Setup /etc/issue
 echo -e "To login to the shell, use:\n----------------------\n   username: root\n   password: hadoop\n\nGPADMIN Credentials:\n----------------------\n   username: gpadmin\n   password: gpadmin\n" >> /etc/issue
@@ -281,7 +279,7 @@ sed -i '/^UUID/d'  /etc/sysconfig/network-scripts/ifcfg-eth0
 echo "reduce VM size"
 wget http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
 chmod +x zero_machine.sh
-rm -rf /staging/*
+rm -rf /staging/*.gz
 rm -rf ~/ambari-bootsrap
 ./zero_machine.sh
 /bin/rm -f zero_machine.sh
