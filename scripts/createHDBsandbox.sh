@@ -20,7 +20,6 @@ export cluster_name=hdp
 export host_count=1
 export ambari_stack_version=2.5
 
-
 ################
 # Script start #
 ################
