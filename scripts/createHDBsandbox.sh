@@ -265,14 +265,15 @@ wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/haw
 chmod +x /staging/hawq_install.sh
 echo "sandbox.hortonworks.com" >> /staging/hostsfile
 
-#read -p "Press any key to continue... " -n1 -s
 
 
 tar xvf /staging/madlib*.gppkg -C /staging/
-/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
+#/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq -s"
 
 chmod +x /staging/remove_compression.sh
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
+
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
 
