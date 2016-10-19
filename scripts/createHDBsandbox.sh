@@ -97,8 +97,8 @@ curl -u admin:admin -H  X-Requested-By:ambari http://localhost:8080/api/v1/hosts
 echo "Make VM look like sandbox..."
 cd ~
 #wget https://github.com/abajwa-hw/security-workshops/raw/master/scripts/startup-HDB.zip
-#wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
-wget https://github.com/dbbaskette/hdb-sandbox/raw/meetup-lab/startup-HDB.zip
+wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
+#wget https://github.com/dbbaskette/hdb-sandbox/raw/meetup-lab/startup-HDB.zip
 
 
 unzip startup-HDB.zip -d /
