@@ -63,13 +63,13 @@ echo "Setting up HAWQ service defn..."
 echo "GOT API KEY " $1
 mkdir /staging
 chmod a+rx /staging
-#wget -O "hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
-#wget -O "hdb-ambari-plugin.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
+wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
+wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
 wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
 
 # TEMP DOWNLOAD OF NEW CODE
-wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
-wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
+#wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
+#wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
 
 tar -xvzf /staging/hdb.tar.gz -C /staging/
 tar -xvzf /staging/hdb-addons.tar.gz -C /staging/
