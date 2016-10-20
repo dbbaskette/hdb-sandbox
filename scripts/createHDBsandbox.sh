@@ -64,7 +64,7 @@ echo "GOT API KEY " $1
 mkdir /staging
 chmod a+rx /staging
 wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
-wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_PLUGIN
+wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_ADDON
 wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
 
 # TEMP DOWNLOAD OF NEW CODE
