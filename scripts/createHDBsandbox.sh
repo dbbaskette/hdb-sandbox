@@ -200,18 +200,46 @@ source ~/ambari-bootstrap/extras/ambari_functions.sh
 ambari_configs
 ambari_wait_request_complete 1
 
-
 ##post install steps
 
 sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
 
 cd ~
 
-echo "Update Zeppelin configs for HAWQ"
-#curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
+cat << EOF > ~/zeppelin-psql.json
+{
+      "name": "psql",
+      "group": "psql",
+      "properties": {
+        "postgresql.driver.name": "org.postgresql.Driver",
+        "postgresql.password": "gpadmin",
+        "postgresql.url": "jdbc:postgresql://localhost:5432/gpadmin",
+        "postgresql.max.result": "1000",
+        "postgresql.user": "gpadmin"
+      },
+      "interpreterGroup": [
+        {
+          "class": "org.apache.zeppelin.postgresql.PostgreSqlInterpreter",
+          "name": "sql"
+        }
+      ],
+      "dependencies": [],
+      "option": {
+        "remote": true,
+        "perNoteSession": false,
+        "perNoteProcess": false,
+        "isExistingProcess": false,
+        "isUserImpersonate": false
+      }
+}
+EOF
 
-echo "Pointing Zeppelin at gpadmin database by default"
-sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+
+
+
+
+#echo "Pointing Zeppelin at gpadmin database by default"
+#sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
 #read -p "Press any key to continue... " -n1 -s
 
@@ -223,6 +251,13 @@ sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Stop ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "INSTALLED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 sleep 30
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Start ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "STARTED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
+
+sleep 10
+
+echo "Update Zeppelin configs for HAWQ"
+#curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
+curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
+
 
 echo "import data into hive"
 cd /tmp
@@ -258,6 +293,8 @@ echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
 
 # ADD PG defaults to .bashrc
 sudo -u gpadmin bash -c "echo 'export PGPORT=10432' >> /home/gpadmin/.bashrc"
+sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /home/gpadmin/.bashrc"
+
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
 echo "Installing MADlib"
