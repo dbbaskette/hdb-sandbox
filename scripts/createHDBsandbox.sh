@@ -213,7 +213,7 @@ cat << EOF > ~/zeppelin-psql.json
       "properties": {
         "postgresql.driver.name": "org.postgresql.Driver",
         "postgresql.password": "gpadmin",
-        "postgresql.url": "jdbc:postgresql://localhost:5432/gpadmin",
+        "postgresql.url": "jdbc:postgresql://localhost:10432/gpadmin",
         "postgresql.max.result": "1000",
         "postgresql.user": "gpadmin"
       },
