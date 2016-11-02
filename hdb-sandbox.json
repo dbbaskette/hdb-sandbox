@@ -5,7 +5,7 @@
     "headless": "false",
     "vm_basename": "HDB-Sandbox",
     "hdbversion": "2.01",
-    "pivnet_api_key": "FILLIN"
+    "pivnet_api_key": “FILLIN”
   },
   "builders": [
     {
@@ -97,7 +97,7 @@
           "modifyvm",
           "{{.Name}}",
           "--natpf1",
-          "gpcc,tcp,,28080,,28080"
+          "zep,tcp,,9995,,9995"
         ]
       ],
       "headless": "{{user `headless`}}",
