@@ -105,15 +105,12 @@ cd ~
 #git clone https://github.com/dbbaskette/hdb-sandbox.git
 mkdir -p /usr/lib/hue/tools
 mv ~/start_scripts /usr/lib/hue/tools
-ls -al /usr/lib/hue/tools
-
 
 #unzip startup-HDB.zip -d /
-#ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
+ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
 
 
 #rm -f startup-HDB.zip
-echo $2
 echo $2 > /virtualization
 
 #boot in text only and remove rhgb

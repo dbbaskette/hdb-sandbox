@@ -13,10 +13,11 @@ class DHCPMisconfiguration(Exception):
 
 
 def make_greet_window():
+    versionStr = "HDP "+os.environ.get("HDP_VERSION")+" / HDB "+ os.environ.get("HDB_VERSION")+ "/ Ambari "+ os.environ.get("AMB_VERSION" + " / " + platform)
     H, W = screen.getmaxyx()
     greet_win = screen.subwin(H / 2 - HINT_WIDTH, W, 0, 0)
     greet_win.box()
-    greet_win.addstr(1, 2, "HDP "+os.environ.get("HDP_VERSION")+" / HDB "+ os.environ.get("HDB_VERSION")+ "/ Ambari "+ os.environ.get("AMB_VERSION"))
+    greet_win.addstr(1, 2, versionStr )
     greet_win.addstr(2, 2, "http://hortonworks.com     http://pivotal.io/")
     greet_win.addstr(3, 2, "---------------------------------------------")
     greet_win.addstr(4, 2, "username: root      password:  hadoop")
