@@ -5,7 +5,7 @@
     "headless": "false",
     "vm_basename": "HDB-Sandbox",
     "hdbversion": "2.01",
-    "pivnet_api_key": “FILLIN”
+    "pivnet_api_key": ""
   },
   "builders": [
     {
@@ -133,7 +133,7 @@
     {
       "type": "shell",
       "inline": [
-        "chmod +x /root/createHDBsandbox.sh && /root/createHDBsandbox.sh {{user `pivnet_api_key`}} "
+        "chmod +x /root/createHDBsandbox.sh && /root/createHDBsandbox.sh {{user `pivnet_api_key`}} {{build_name}}"
       ]
     },
     {

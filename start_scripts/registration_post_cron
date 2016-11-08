@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+HOME=/
+*/5 * * * * root /usr/lib/tutorials/.env/bin/python /usr/lib/hue/tools/start_scripts/registration_post.py

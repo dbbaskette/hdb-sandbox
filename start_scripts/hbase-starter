@@ -1,0 +1,61 @@
+#!/bin/bash
+# hbase init script
+# chkconfig: 345 99 1
+### BEGIN INIT INFO
+# provides: hbase-starter
+# Required-Start:
+# Required-Stop:
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 6
+# Description: HBase startup script
+### END INIT INFO
+
+SCRIPTS_PATH=/usr/lib/hue/tools/start_scripts
+NAME="hbase-starter"
+LOG="/var/log/$NAME_script.log"
+
+source /etc/rc.d/init.d/functions
+
+source $SCRIPTS_PATH/consts.sh
+
+start() {
+    printf "%-50s\n" "Starting HBase..." | tee -a $LOG
+    
+    make --makefile $SCRIPTS_PATH/start_deps.mf -B HBase -j -i
+}
+
+
+stop() {
+    echo "Stop HBase"
+    # slave node
+    echo "Stop Hbase RegionServers"
+    su -l hbase -c "/usr/lib/hbase/bin/hbase-daemon.sh --config /etc/hbase/conf stop regionserver"
+
+    # master node
+    echo "Stop Hbase Master"
+    su -l hbase -c "/usr/lib/hbase/bin/hbase-daemon.sh --config /etc/hbase/conf stop master"
+
+    echo "Stop Hbase Stargate"
+    su -l hbase -c "/usr/lib/hbase/bin/hbase-daemon.sh stop rest"
+
+    echo "Stop Hbase Stargate"
+    su -l hbase -c "/usr/lib/hbase/bin/hbase-daemon.sh stop thrift"
+}
+
+case "$1" in
+start)
+    start
+    ;;
+stop)
+    stop
+    ;;
+
+restart)
+    stop
+    start
+    ;;
+
+*)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac

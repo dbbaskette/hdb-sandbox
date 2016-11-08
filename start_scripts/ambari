@@ -1,0 +1,59 @@
+#!/bin/bash
+# ambari init script
+# chkconfig: 345 99 1
+### BEGIN INIT INFO
+# provides: ambari
+# Required-Start:
+# Required-Stop:
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 6
+# Description: Ambari startup script
+### END INIT INFO
+
+SCRIPTS_PATH=/usr/lib/hue/tools/start_scripts
+NAME="ambari"
+LOG="/var/log/$NAME_script.log"
+
+source /etc/rc.d/init.d/functions
+
+source $SCRIPTS_PATH/consts.sh
+
+start() {
+    printf "%-50s\n" "Starting Ambari..." | tee -a $LOG
+    
+    make --makefile $SCRIPTS_PATH/start_deps.mf -B Ambari -j -i
+}
+
+
+stop() {
+	echo "Stopping Ganglia"
+	/etc/init.d/hdp-gmetad stop
+	/etc/init.d/hdp-gmond stop
+
+	echo "Stopping Nagios"
+	/etc/init.d/nagios stop
+
+	echo "Stopping Ambari server"
+	ambari-server stop
+
+	echo "Stopping Ambari agent"
+	ambari-agent stop
+}
+
+case "$1" in
+start)
+	start
+	;;
+stop)
+	stop
+	;;
+
+restart)
+    stop
+    start
+	;;
+
+*)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac

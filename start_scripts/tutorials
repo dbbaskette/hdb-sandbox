@@ -1,0 +1,82 @@
+#!/bin/bash
+# Hue Tutorials
+# chkconfig: 345 20 80
+### BEGIN INIT INFO
+# provides: tutorials
+# Required-Start:
+# Required-Stop:
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 6
+# Description: tutorials startup script
+### END INIT INFO
+
+SCRIPTS_PATH="/usr/lib/hue/tools/start_scripts"
+source $SCRIPTS_PATH/consts.sh
+
+
+DAEMON_PATH="$TUTORIALS_HOME/.env/bin"
+DAEMON="$TUTORIALS_HOME/.env/bin/python $TUTORIALS_HOME/manage.py  run_gunicorn 0:8888"
+
+NAME=tutorials
+DESC="Hue tutorials"
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+case "$1" in
+start)
+    printf "%-50s" "Starting $NAME..."
+    
+    touch /usr/lib/tutorials/registration_post.log
+    chown hue:hadoop /usr/lib/tutorials/registration_post.log
+
+    /usr/lib/tutorials/.env/bin/python \
+        /usr/lib/hue/tools/start_scripts/registration_post.py
+
+    cd $DAEMON_PATH
+    PID=`$DAEMON > /dev/null 2>&1 & echo $!`
+    #echo "Saving PID" $PID " to " $PIDFILE
+        if [ -z $PID ]; then
+            printf "%s\n" "Fail"
+        else
+            echo $PID > $PIDFILE
+            printf '\e[60G[\e[0;32m  %s  \e[0;39m]\n' "Ok"
+        fi
+;;
+status)
+        printf "%-50s" "Checking $NAME..."
+        if [ -f $PIDFILE ]; then
+            PID=`cat $PIDFILE`
+            if [ -z "`ps axf | grep ${PID} | grep -v grep`" ]; then
+                printf "%s\n" "Process dead but pidfile exists"
+                exit 1
+            else
+                echo "Running"
+                exit 0
+            fi
+        else
+            printf "%s\n" "Service not running"
+            exit 1
+        fi
+;;
+stop)
+        printf "%-50s" "Stopping $NAME"
+        if [ -f $PIDFILE ]; then
+            PID=`cat $PIDFILE`
+            cd $DAEMON_PATH
+            kill -TERM $PID
+            printf '\e[60G[\e[0;32m  %s  \e[0;39m]\n' "Ok"
+            rm -f $PIDFILE
+        else
+            printf "%s\n" "pidfile not found"
+        fi
+;;
+
+restart)
+      $0 stop
+      $0 start
+;;
+
+*)
+        echo "Usage: $0 {status|start|stop|restart}"
+        exit 1
+esac

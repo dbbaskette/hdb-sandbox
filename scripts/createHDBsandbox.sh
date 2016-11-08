@@ -100,14 +100,20 @@ curl -u admin:admin -H  X-Requested-By:ambari http://localhost:8080/api/v1/hosts
 echo "Make VM look like sandbox..."
 cd ~
 #wget https://github.com/abajwa-hw/security-workshops/raw/master/scripts/startup-HDB.zip
-wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
+#wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
 #wget https://github.com/dbbaskette/hdb-sandbox/raw/meetup-lab/startup-HDB.zip
+git clone https://github.com/dbbaskette/hdb-sandbox.git
+mkdir -p /usr/lib/hue/tools
+mv ~/hdb-sandbox/start_scripts /usr/lib/hue/tools
 
 
-unzip startup-HDB.zip -d /
-ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
-rm -f startup-HDB.zip
-echo "vmware" > /virtualization
+#unzip startup-HDB.zip -d /
+#ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
+
+
+#rm -f startup-HDB.zip
+echo $2
+echo $2 > /virtualization
 
 #boot in text only and remove rhgb
 #plymouth-set-default-theme text
@@ -316,6 +322,7 @@ wget http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
 chmod +x zero_machine.sh
 rm -rf /staging/*
 rm -rf ~/ambari-bootsrap
+rm -rf ~/hdb-sandbox
 ./zero_machine.sh
 /bin/rm -f zero_machine.sh
 

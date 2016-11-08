@@ -1,0 +1,218 @@
+#!/bin/bash
+# Hue
+# chkconfig: 345 99 1
+# description: startup script
+### BEGIN INIT INFO
+# provides: Hue
+# Required-Start:
+# Required-Stop:
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 6
+# Description: hue init script
+### END INIT INFO
+
+. /usr/lib/hue/tools/functions
+
+LOCKFILE=/var/lock/subsys/hue/hue
+DAEMON=/usr/lib/hue/build/env/bin/supervisor # Introduce the server's location here
+LOGDIR=/var/log/hue  # Log directory to use
+PIDFILE=/var/run/hue/supervisor.pid
+USER=hue
+GROUP=hadoop
+EXEC=/usr/lib/hue/build/env/bin/python
+DAEMON_OPTS="-p $PIDFILE -l $LOGDIR -d"
+
+HUEINI=/etc/hue/conf/hue.ini
+
+DO="/sbin/runuser -s /bin/bash $USER -c"
+
+# set hue.ini configuration
+function ini_set() {
+    sed -i "s/\($2 *= *\).*/\1$3/" "$1"
+}
+
+parse_args() {
+    ARGS=$(getopt -o h:u:k:p:l:g: -l "HUEHOME:,USER:,LOCKFILE:,LOGDIR:,PIDFILE:,GROUP:" -- "$@");
+
+    if [ $? -ne 0 ];
+    then
+      exit 1
+    fi
+
+    eval set -- "$ARGS";
+
+    while true; do
+      case "$1" in
+        -h | --HUEHOME)
+          shift;
+          if [ -n "$1" ]; then
+            HUEHOME="$1"
+            DAEMON=$HUE_HOME/build/env/bin/supervisor
+            EXEC=$HUE_HOME/build/env/bin/python
+            shift;
+          fi
+          ;;
+        -u | --USER)
+          shift;
+          if [ -n "$1" ]; then
+            USER="$1"
+            shift;
+          fi
+          ;;
+        -g | --GROUP)
+          shift;
+          if [ -n "$1" ]; then
+            GROUP="$1"
+            shift;
+          fi
+          ;;
+        -k | --LOCKFILE)
+          shift;
+          if [ -n "$1" ]; then
+            LOCKFILE="$1"
+            shift;
+          fi
+          ;;
+        -l | --LOGDIR)
+          shift;
+          if [ -n "$1" ]; then
+            LOGDIR="$1"
+            shift;
+          fi
+          ;;
+        -p | --PIDFILE)
+          shift;
+          if [ -n "$1" ]; then
+            PIDFILE="$1"
+            shift;
+          fi
+          ;;
+        --)
+          shift;
+          break;
+          ;;
+        *)
+          shift;
+          ;;
+      esac
+    done
+
+}
+
+hue_setup() {
+        usermod -u 1042 hue
+
+        mkdir -p "`dirname $LOCKFILE`"
+        chown -R $USER:$GROUP /usr/lib/hue 
+        chown -R $USER:$GROUP /var/lib/hue 
+        chown -R $USER:$GROUP "`dirname $LOCKFILE`"
+        ini_set $HUEINI server_user $USER
+        ini_set $HUEINI server_group $GROUP
+        chown root:$GROUP /usr/lib/hue/apps/shell/src/shell/build/setuid
+        chmod 4711 /usr/lib/hue/apps/shell/src/shell/build/setuid
+
+        export PYTHON_EGG_CACHE='/tmp/.hue-python-eggs'
+        RE_REGISTER=/usr/share/hue/.re_register
+        if [ -e $RE_REGISTER ]; then
+            # Do app_reg on upgraded apps. This is a workaround for DISTRO-11.
+            # We can probably take it out after another release.
+            APP_REG="/usr/share/hue/tools/app_reg/app_reg.py"
+            # Upgraded apps write their paths in the re_rgister file.
+            RE_REG_LOG=/var/log/hue/hue_re_register.log
+
+            # Make cwd somewhere that $USER can chdir into
+            pushd / > /dev/null
+            $DO "DESKTOP_LOG_DIR=$LOGDIR $EXEC $APP_REG --install $(cat $RE_REGISTER | xargs echo -n)  >> $RE_REG_LOG 2>&1"
+            ok=$?
+            popd > /dev/null
+            if [ $ok -eq 0 ] ; then
+                rm -f $RE_REGISTER
+            else
+                echo "Failed to register some apps: Details in $RE_REG_LOG"
+            fi
+        fi
+}
+
+hue_start() {
+        [ `id -u` -eq "0" ] && hue_setup
+
+        echo -n "Starting hue: "
+        for dir in $(dirname $PIDFILE) $LOGDIR ${PYTHON_EGG_CACHE}
+        do
+            mkdir -p $dir
+            chown -R $USER $dir
+        done
+
+        # Check if already running
+        if [ -e $PIDFILE ] && checkpid $(cat $PIDFILE) ; then
+            echo "already running"
+            return 0
+        fi
+        # the supervisor itself will setuid down to $USER
+        $DO "$DAEMON $DAEMON_OPTS"
+        ret=$?
+        base=$(basename $0)
+        if [ $ret -eq 0 ]; then
+            sleep 5
+            test -e $PIDFILE && checkpid $(cat $PIDFILE)
+            ret=$?
+        fi
+        if [ $ret -eq 0 ]; then
+            touch $LOCKFILE
+            success $"$base startup"
+        else
+            failure $"$base startup"
+        fi
+        echo
+        return $ret
+}
+
+hue_stop() {
+        if [ ! -e $PIDFILE ]; then
+            success "Hue is not running"
+            return 0
+        fi
+
+        echo -n "Shutting down hue: "
+        killproc -p $PIDFILE -d 15 $DAEMON
+        ret=$?
+        echo
+        rm -f $LOCKFILE
+        return $ret
+}
+
+hue_restart() {
+  hue_stop
+  hue_start
+}
+
+ACTION="$1"
+
+shift
+parse_args $@
+
+case "$ACTION" in
+    start)
+        hue_start
+        ;;
+    stop)
+        hue_stop
+        ;;
+    status)
+        status -p $PIDFILE supervisor
+        ;;
+    restart|reload)
+        hue_restart
+        ;;
+    setup)
+        hue_setup
+        ;;
+    condrestart)
+        [ -f $LOCKFILE ] && restart || :
+        ;;
+    *)
+        echo "Usage: hue {start|stop|status|reload|restart|condrestart"
+        exit 1
+        ;;
+esac
+exit $?
