@@ -121,6 +121,10 @@ sed -i "s/rhgb//g" /boot/grub/grub.conf
 echo "setterm -blank 0" >> /etc/rc.local
 echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
 
+echo "export HDB_VERSION=2.0.1.0" >> /etc/rc.local
+echo "export HDP_VERSION=2.5.0.0-1245" >> /etc/rc.local
+echo "export AMB_VERSION=2.4.1.0" >> /etc/rc.local
+
 
 echo "python /usr/lib/hue/tools/start_scripts/splash.py" >> /etc/rc.local
  

@@ -13,7 +13,7 @@ class DHCPMisconfiguration(Exception):
 
 
 def make_greet_window():
-    versionStr = "HDP "+os.environ.get("HDP_VERSION")+" / HDB "+ os.environ.get("HDB_VERSION")+ "/ Ambari "+ os.environ.get("AMB_VERSION" + " / " + platform)
+    versionStr = "HDP "+str(os.environ.get("HDP_VERSION"))+" / HDB "+ str(os.environ.get("HDB_VERSION"))+ "/ Ambari "+ str(os.environ.get("AMB_VERSION")) + " / " + platform
     H, W = screen.getmaxyx()
     greet_win = screen.subwin(H / 2 - HINT_WIDTH, W, 0, 0)
     greet_win.box()
