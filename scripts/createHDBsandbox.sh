@@ -102,9 +102,10 @@ cd ~
 #wget https://github.com/abajwa-hw/security-workshops/raw/master/scripts/startup-HDB.zip
 #wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
 #wget https://github.com/dbbaskette/hdb-sandbox/raw/meetup-lab/startup-HDB.zip
-git clone https://github.com/dbbaskette/hdb-sandbox.git
+#git clone https://github.com/dbbaskette/hdb-sandbox.git
 mkdir -p /usr/lib/hue/tools
-mv ~/hdb-sandbox/start_scripts /usr/lib/hue/tools
+mv ~/start_scripts /usr/lib/hue/tools
+ls -al /usr/lib/hue/tools
 
 
 #unzip startup-HDB.zip -d /

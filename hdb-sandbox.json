@@ -127,6 +127,11 @@
     },
     {
       "type": "file",
+      "source": "start_scripts",
+      "destination": "/root"
+    },
+    {
+      "type": "file",
       "source": "scripts/createHDBsandbox.sh",
       "destination": "/root/createHDBsandbox.sh"
     },
