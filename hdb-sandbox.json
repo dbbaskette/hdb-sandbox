@@ -3,7 +3,7 @@
     "iso_url": "http://mirrors.gigenet.com/centos/6.8/isos/x86_64/CentOS-6.8-x86_64-bin-DVD1.iso",
     "iso_checksum": "f73c2c4dd333c202ca85ea66120cacdf",
     "headless": "false",
-    "vm_basename": "HDB-Sandbox-",
+    "vm_basename": "HDB-Sandbox-PreInstall",
     "hdbversion": "2.1.0.0",
     "pivnet_api_key": ""
   },

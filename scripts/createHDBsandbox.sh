@@ -88,8 +88,10 @@ cd /staging/hdb-2*
 cd /staging/hdb-add*
 ./setup_repo.sh  
 yum install -y hawq-ambari-plugin
-/var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
-sleep 5m
+
+#preinstall
+#/var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
+
 #restart Ambari
 echo "Restarting Ambari..."
 service ambari-server restart
@@ -274,22 +276,24 @@ sudo -u hdfs ./load_data_to_HDFS.sh
 sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
 sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
 
-echo "Configure local connections to HAWQ and reload HAWQ configs.."
-
-ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
-
-echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
-echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
-echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
-echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
+#preinstall
+#echo "Configure local connections to HAWQ and reload HAWQ configs.."
+#
+#ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+#
+#echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
+#echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
+#echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
+#echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
 
 
 
 # ADD PG defaults to .bashrc
 sudo -u gpadmin bash -c "echo 'export PGPORT=10432' >> /home/gpadmin/.bashrc"
-sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /home/gpadmin/.bashrc"
-
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
+#preinstall
+#sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /home/gpadmin/.bashrc"
+#
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
 #echo "Installing MADlib"
 #wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
