@@ -7,13 +7,13 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/2397
-export PIV_NET_HDB=$PIV_NET_BASE/product_files/7634/download
-export PIV_NET_ADDON=$PIV_NET_BASE/product_files/7633/download
-export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/7727/download
-export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/2397/eula_acceptance
-export HDB_VERSION=2.0.1.0
-export HDP_VERSION=2.5.0.0-1245
+export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098
+export PIV_NET_HDB=$PIV_NET_BASE/product_files/10038/download
+export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10039/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/9859/download
+export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098/eula_acceptance
+export HDB_VERSION=2.1.0.0
+export HDP_VERSION=2.5.3.0
 export AMB_VERSION=2.4.1.0
 
 #Customize which services to deploy and other configs
@@ -58,12 +58,14 @@ install_ambari_server=true ~/ambari-bootstrap/ambari-bootstrap.sh
 #sed -i.bak '/dependencies for all/a \  "ZEPPELIN_MASTER-START": ["NAMENODE-START", "DATANODE-START"],' /var/lib/ambari-server/resources/stacks/HDP/2.4/role_command_order.json
 
 #ACCEPT EULA
-export headers="{Authorization:Token $1}"
+echo "Accept Pivotal EULA"
+echo "GOT API KEY " $1
+export headers="Authorization:Token $1"
 curl -X POST --header $headers $PIV_NET_EULA
 
 #HAWQ setup
 echo "Setting up HAWQ service defn..."
-echo "GOT API KEY " $1
+
 mkdir /staging
 chmod a+rx /staging
 wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
@@ -87,8 +89,7 @@ cd /staging/hdb-add*
 ./setup_repo.sh  
 yum install -y hawq-ambari-plugin
 /var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
-
-
+sleep 5m
 #restart Ambari
 echo "Restarting Ambari..."
 service ambari-server restart
@@ -121,7 +122,7 @@ sed -i "s/rhgb//g" /boot/grub/grub.conf
 echo "setterm -blank 0" >> /etc/rc.local
 echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
 
-echo "export HDB_VERSION=2.0.1.0" >> /etc/rc.local
+echo "export HDB_VERSION=2.1.0.0" >> /etc/rc.local
 echo "export HDP_VERSION=2.5.0.0-1245" >> /etc/rc.local
 echo "export AMB_VERSION=2.4.1.0" >> /etc/rc.local
 
@@ -197,8 +198,9 @@ ambari_configs
 ambari_wait_request_complete 1
 
 ##post install steps
-
-sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
+#ZEPPOFF
+#sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
+#ZEPPOFF
 
 cd ~
 
@@ -237,7 +239,6 @@ EOF
 #echo "Pointing Zeppelin at gpadmin database by default"
 #sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
-#read -p "Press any key to continue... " -n1 -s
 
 
 echo "Downloading demo HAWQ demo notebook and restarting Zeppelin"
@@ -250,9 +251,11 @@ curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"Req
 
 sleep 10
 
-echo "Update Zeppelin configs for HAWQ"
-#curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
-curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
+#ZEPPOFF
+#echo "Update Zeppelin configs for HAWQ"
+##curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
+#curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
+#ZEPPOFF
 
 
 echo "import data into hive"
@@ -293,22 +296,21 @@ sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /hom
 
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
-echo "Installing MADlib"
-wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
-chmod +x /staging/hawq_install.sh
-echo "sandbox.hortonworks.com" >> /staging/hostsfile
+#echo "Installing MADlib"
+#wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
+#chmod +x /staging/hawq_install.sh
+#echo "sandbox.hortonworks.com" >> /staging/hostsfile
 
 
 
-tar xvf /staging/madlib*.gppkg -C /staging/
+#tar xvf /staging/madlib*.gppkg -C /staging/
 #/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq -s"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq -s"
 
-chmod +x /staging/remove_compression.sh
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
-
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432"
+#chmod +x /staging/remove_compression.sh
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432i/gpadmin"
 
 #Setup /etc/issue
 echo -e "To login to the shell, use:\n----------------------\n   username: root\n   password: hadoop\n\nGPADMIN Credentials:\n----------------------\n   username: gpadmin\n   password: gpadmin\n" >> /etc/issue
