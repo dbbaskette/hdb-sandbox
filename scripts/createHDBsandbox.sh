@@ -198,9 +198,7 @@ ambari_configs
 ambari_wait_request_complete 1
 
 ##post install steps
-#ZEPPOFF
-#sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
-#ZEPPOFF
+sudo -u zeppelin /usr/hdp/current/zeppelin-server/bin/install-interpreter.sh -a
 
 cd ~
 
@@ -236,8 +234,8 @@ EOF
 
 
 
-#echo "Pointing Zeppelin at gpadmin database by default"
-#sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+echo "Pointing Zeppelin at gpadmin database by default"
+sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
 
 
@@ -251,11 +249,8 @@ curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"Req
 
 sleep 10
 
-#ZEPPOFF
-#echo "Update Zeppelin configs for HAWQ"
-##curl -sSL https://gist.githubusercontent.com/dbbaskette/8dd2bd949f8a6eac4e7083f942748149/raw | sudo -E python
-#curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
-#ZEPPOFF
+echo "Update Zeppelin configs for HAWQ"
+curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
 
 
 echo "import data into hive"
