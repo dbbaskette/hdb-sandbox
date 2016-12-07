@@ -151,24 +151,11 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
         "dfs.replication": "1"
 
     },
-    "hawq-site":{
-        "hawq_master_address_port":"10432",
-        "hawq_master_temp_directory":"/data/hawq/tmp",
-        "hawq_segment_temp_directory":"/data/hawq/tmp"
 
-    },
-    "hdfs-client":{
-        "dfs.default.replica":"1"
-    },
     "yarn-site":{
         "yarn.scheduler.minimum-allocation-mb":"320"
     },
 
-    "hawq-env":{
-        "hawq_password":"gpadmin",
-        "vm.overcommit_memory":"1"
-
-    },
     "core-site": {
         "hadoop.proxyuser.root.groups": "*",
         "hadoop.proxyuser.root.hosts": "*",        
