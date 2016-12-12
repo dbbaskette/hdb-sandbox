@@ -361,14 +361,15 @@ sed -i '/^UUID/d'  /etc/sysconfig/network-scripts/ifcfg-eth0
 
 
 echo "reduce VM size"
-wget http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
-chmod +x zero_machine.sh
+cd /opt
+wget -O "/tmp/zero_machine.sh" http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
+chmod +x /tmp/zero_machine.sh
 rm -rf /staging/*
 rm -rf ~/ambari-bootsrap
 rm -rf ~/hdb-sandbox
 rm -rf /opt/hawq-sandbox-demos
-./zero_machine.sh
-/bin/rm -f zero_machine.sh
+/tmp/zero_machine.sh
+/bin/rm -f /tmp/zero_machine.sh
 
 
 
