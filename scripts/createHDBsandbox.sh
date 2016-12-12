@@ -10,7 +10,7 @@
 export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098
 export PIV_NET_HDB=$PIV_NET_BASE/product_files/10038/download
 export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10039/download
-export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/9859/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10415/download
 export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098/eula_acceptance
 export HDB_VERSION=2.1.0.0
 export HDP_VERSION=2.5.3.0
@@ -63,6 +63,12 @@ echo "GOT API KEY " $1
 export headers="Authorization:Token $1"
 curl -X POST --header $headers $PIV_NET_EULA
 
+export token="pcPLExkA9svUP4pBvmW3"
+echo "Accept Pivotal EULA"
+echo "GOT API KEY " $token
+export headers="Authorization:Token $token"
+curl -X POST --header $headers $PIV_NET_EULA
+
 #HAWQ setup
 echo "Setting up HAWQ service defn..."
 
@@ -89,7 +95,7 @@ cd /staging/hdb-add*
 ./setup_repo.sh  
 yum install -y hawq-ambari-plugin
 /var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
-sleep 5m
+
 #restart Ambari
 echo "Restarting Ambari..."
 service ambari-server restart
@@ -175,7 +181,7 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
         "ipc.server.listen.queue.size": "3300"
     },
     "zeppelin-config": {
-    "zeppelin.interpreters": "org.apache.zeppelin.spark.SparkInterpreter,org.apache.zeppelin.spark.PySparkInterpreter,org.apache.zeppelin.spark.SparkSqlInterpreter,org.apache.zeppelin.spark.DepInterpreter,org.apache.zeppelin.markdown.Markdown,org.apache.zeppelin.angular.AngularInterpreter,org.apache.zeppelin.shell.ShellInterpreter,org.apache.zeppelin.jdbc.JDBCInterpreter,org.apache.zeppelin.phoenix.PhoenixInterpreter,org.apache.zeppelin.livy.LivySparkInterpreter,org.apache.zeppelin.livy.LivyPySparkInterpreter,org.apache.zeppelin.livy.LivySparkRInterpreter,org.apache.zeppelin.livy.LivySparkSQLInterpreter,org.apache.zeppelin.postgresql.PostgreSqlInterpreter"
+    "zeppelin.interpreters": "org.apache.zeppelin.spark.SparkInterpreter,org.apache.zeppelin.spark.PySparkInterpreter,org.apache.zeppelin.spark.SparkSqlInterpreter,org.apache.zeppelin.spark.DepInterpreter,org.apache.zeppelin.markdown.Markdown,org.apache.zeppelin.angular.AngularInterpreter,org.apache.zeppelin.shell.ShellInterpreter,org.apache.zeppelin.jdbc.JDBCInterpreter,org.apache.zeppelin.phoenix.PhoenixInterpreter,org.apache.zeppelin.livy.LivySparkInterpreter,org.apache.zeppelin.livy.LivyPySparkInterpreter,org.apache.zeppelin.livy.LivySparkRInterpreter,org.apache.zeppelin.livy.LivySparkSQLInterpreter,org.apache.zeppelin.postgresql.PostgreSqlInterpreter,org.apache.zeppelin.file.HDFSFileInterpreter"
     }
 
 
@@ -209,7 +215,7 @@ cat << EOF > ~/zeppelin-psql.json
       "properties": {
         "postgresql.driver.name": "org.postgresql.Driver",
         "postgresql.password": "gpadmin",
-        "postgresql.url": "jdbc:postgresql://localhost:10432/gpadmin",
+        "postgresql.url": "jdbc:postgresql://localhost:10432/demos",
         "postgresql.max.result": "1000",
         "postgresql.user": "gpadmin"
       },
@@ -230,7 +236,31 @@ cat << EOF > ~/zeppelin-psql.json
 }
 EOF
 
-
+cat << EOF > ~/zeppelin-hdfs.json
+{
+      "name": "hdfs",
+      "group": "file",
+      "properties": {
+        "hdfs.maxlength": "1000",
+        "hdfs.user": "hdfs",
+        "hdfs.url": "http://sandbox:50070/webhdfs/v1/"
+      },
+      "interpreterGroup": [
+        {
+          "class": "org.apache.zeppelin.file.HDFSFileInterpreter",
+          "name": "hdfs"
+        }
+      ],
+      "dependencies": [],
+      "option": {
+        "remote": true,
+        "perNoteSession": false,
+        "perNoteProcess": false,
+        "isExistingProcess": false,
+        "isUserImpersonate": false
+      }
+    }
+EOF
 
 
 
@@ -238,11 +268,18 @@ echo "Pointing Zeppelin at gpadmin database by default"
 sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
 
+echo "Downloading HAWQ Demo #1"
 
-echo "Downloading demo HAWQ demo notebook and restarting Zeppelin"
-notebook_id=2BQPFYB1X
-sudo -u zeppelin  mkdir /usr/hdp/current/zeppelin-server/notebook/$notebook_id
-sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0c5889783ecf0cd967ab/raw -O /usr/hdp/current/zeppelin-server/notebook/$notebook_id/note.json
+cd /opt
+git clone https://github.com/dbbaskette/hawq-sandbox-demos.git
+cd hawq-sandbox-demos
+./setup.sh
+
+#echo "Downloading demo HAWQ demo #2  and restarting Zeppelin"
+#notebook_id=2BQPFYB1X
+#sudo -u zeppelin  mkdir /usr/hdp/current/zeppelin-server/notebook/$notebook_id
+#sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0c5889783ecf0cd967ab/raw -O /usr/hdp/current/zeppelin-server/notebook/$notebook_id/note.json
+
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Stop ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "INSTALLED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 sleep 30
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Start ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "STARTED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
@@ -251,28 +288,34 @@ sleep 10
 
 echo "Update Zeppelin configs for HAWQ"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
+echo "Update Zeppelin configs for HDFS"
+curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-hdfs.json
+echo "Add Demo Notebook to Apache Zeppelin"
+curl http://localhost:9995/api/notebook/import -d @/opt/hawq-sandbox-demos/HAWQ-Demonstration.json
 
 
-echo "import data into hive"
-cd /tmp
-wget https://raw.githubusercontent.com/abajwa-hw/security-workshops/master/data/sample_07.csv
 
-sudo -u hdfs hive -e "CREATE TABLE sample_07 (
-code string ,
-description string ,
-total_emp int ,
-salary int )
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' STORED AS TextFile; "
 
-sudo -u hdfs hive -e "load data local inpath '/tmp/sample_07.csv' into table sample_07;"
-
-echo "import retail sample data from pivotal github"
-cd /tmp
-git clone https://github.com/pivotalsoftware/pivotal-samples.git
-cd /tmp/pivotal-samples/sample-data/
-sudo -u hdfs ./load_data_to_HDFS.sh
-sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
-sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
+#echo "import data into hive"
+#cd /tmp
+#wget https://raw.githubusercontent.com/abajwa-hw/security-workshops/master/data/sample_07.csv
+#
+#sudo -u hdfs hive -e "CREATE TABLE sample_07 (
+#code string ,
+#description string ,
+#total_emp int ,
+#salary int )
+#ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' STORED AS TextFile; "
+#
+#sudo -u hdfs hive -e "load data local inpath '/tmp/sample_07.csv' into table sample_07;"
+#
+#echo "import retail sample data from pivotal github"
+#cd /tmp
+#git clone https://github.com/pivotalsoftware/pivotal-samples.git
+#cd /tmp/pivotal-samples/sample-data/
+#sudo -u hdfs ./load_data_to_HDFS.sh
+#sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
+#sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
 
 echo "Configure local connections to HAWQ and reload HAWQ configs.."
 
@@ -291,21 +334,22 @@ sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /hom
 
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
-#echo "Installing MADlib"
-#wget https://raw.githubusercontent.com/apache/incubator-madlib/master/deploy/hawq_install.sh -O /staging/hawq_install.sh
-#chmod +x /staging/hawq_install.sh
-#echo "sandbox.hortonworks.com" >> /staging/hostsfile
+echo "Installing MADlib"
+#TEMP
+wget -O "/staging/madlib191.gppkg" https://s3.amazonaws.com/hdb-sandbox/madlib191.gppkg
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib191.gppkg"
+yum install -y dos2unix
+dos2unix /staging/remove_compression.sh
+#TEMP
 
+# TEMP REPLACED BY ABOVE
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib.*gppkg"
+chmod +x /staging/remove_compression.sh
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh --prefix /usr/local/hawq/madlib"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/gpadmin"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/demos"
 
-
-#tar xvf /staging/madlib*.gppkg -C /staging/
-#/staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq/madlib
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /staging/hawq_install.sh -r /staging/madlib*.rpm -f /staging/hostsfile -d /usr/local/hawq --prefix /usr/local/hawq -s"
-
-#chmod +x /staging/remove_compression.sh
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh"
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432i/gpadmin"
 
 #Setup /etc/issue
 echo -e "To login to the shell, use:\n----------------------\n   username: root\n   password: hadoop\n\nGPADMIN Credentials:\n----------------------\n   username: gpadmin\n   password: gpadmin\n" >> /etc/issue
@@ -322,6 +366,7 @@ chmod +x zero_machine.sh
 rm -rf /staging/*
 rm -rf ~/ambari-bootsrap
 rm -rf ~/hdb-sandbox
+rm -rf /opt/hawq-sandbox-demos
 ./zero_machine.sh
 /bin/rm -f zero_machine.sh
 
