@@ -11,7 +11,7 @@ export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/relea
 export PIV_NET_HDB=$PIV_NET_BASE/product_files/10038/download
 export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10039/download
 export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10415/download
-export PIV_NET_EULA=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098/eula_acceptance
+export PIV_NET_EULA=$PIV_NET_BASE/eula_acceptance
 export HDB_VERSION=2.1.0.0
 export HDP_VERSION=2.5.3.0
 export AMB_VERSION=2.4.1.0
@@ -215,7 +215,7 @@ cat << EOF > ~/zeppelin-psql.json
       "properties": {
         "postgresql.driver.name": "org.postgresql.Driver",
         "postgresql.password": "gpadmin",
-        "postgresql.url": "jdbc:postgresql://localhost:10432/demos",
+        "postgresql.url": "jdbc:postgresql://sandbox:10432/demos",
         "postgresql.max.result": "1000",
         "postgresql.user": "gpadmin"
       },
@@ -264,21 +264,10 @@ EOF
 
 
 
-echo "Pointing Zeppelin at gpadmin database by default"
-sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
+#echo "Pointing Zeppelin at Demos database by default"
+#sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
 
 
-echo "Downloading HAWQ Demo #1"
-
-cd /opt
-git clone https://github.com/dbbaskette/hawq-sandbox-demos.git
-cd hawq-sandbox-demos
-./setup.sh
-
-#echo "Downloading demo HAWQ demo #2  and restarting Zeppelin"
-#notebook_id=2BQPFYB1X
-#sudo -u zeppelin  mkdir /usr/hdp/current/zeppelin-server/notebook/$notebook_id
-#sudo -u zeppelin wget https://gist.githubusercontent.com/abajwa-hw/2f72d084dd1d0c5889783ecf0cd967ab/raw -O /usr/hdp/current/zeppelin-server/notebook/$notebook_id/note.json
 
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Stop ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "INSTALLED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 sleep 30
@@ -290,32 +279,11 @@ echo "Update Zeppelin configs for HAWQ"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
 echo "Update Zeppelin configs for HDFS"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-hdfs.json
-echo "Add Demo Notebook to Apache Zeppelin"
-curl http://localhost:9995/api/notebook/import -d @/opt/hawq-sandbox-demos/HAWQ-Demonstration.json
+#MOVED TO DEMO SCRIPTS
+#echo "Add Demo Notebook to Apache Zeppelin"
+#curl http://localhost:9995/api/notebook/import -d @/opt/hawq-sandbox-demos/HAWQ-Demonstration.json
 
 
-
-
-#echo "import data into hive"
-#cd /tmp
-#wget https://raw.githubusercontent.com/abajwa-hw/security-workshops/master/data/sample_07.csv
-#
-#sudo -u hdfs hive -e "CREATE TABLE sample_07 (
-#code string ,
-#description string ,
-#total_emp int ,
-#salary int )
-#ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' STORED AS TextFile; "
-#
-#sudo -u hdfs hive -e "load data local inpath '/tmp/sample_07.csv' into table sample_07;"
-#
-#echo "import retail sample data from pivotal github"
-#cd /tmp
-#git clone https://github.com/pivotalsoftware/pivotal-samples.git
-#cd /tmp/pivotal-samples/sample-data/
-#sudo -u hdfs ./load_data_to_HDFS.sh
-#sudo -u hdfs hdfs dfs -chmod -R 777 /retail_demo
-#sudo -u hdfs hive -f /tmp/pivotal-samples/hive/create_hive_tables.sql
 
 echo "Configure local connections to HAWQ and reload HAWQ configs.."
 
@@ -331,19 +299,22 @@ echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
 # ADD PG defaults to .bashrc
 sudo -u gpadmin bash -c "echo 'export PGPORT=10432' >> /home/gpadmin/.bashrc"
 sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /home/gpadmin/.bashrc"
-
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
+#create a demos database - JUST IN CASE
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; createdb demos"
+
+
 echo "Installing MADlib"
-#TEMP
-wget -O "/staging/madlib191.gppkg" https://s3.amazonaws.com/hdb-sandbox/madlib191.gppkg
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib191.gppkg"
-yum install -y dos2unix
-dos2unix /staging/remove_compression.sh
+#TEMP # HACK FOR MADLIB ISSUES
+#wget -O "/staging/madlib191.gppkg" https://s3.amazonaws.com/hdb-sandbox/madlib191.gppkg
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib191.gppkg"
+#yum install -y dos2unix
+#dos2unix /staging/remove_compression.sh
 #TEMP
 
 # TEMP REPLACED BY ABOVE
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib.*gppkg"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib.*gppkg"
 chmod +x /staging/remove_compression.sh
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh --prefix /usr/local/hawq/madlib"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
@@ -353,6 +324,16 @@ sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/ha
 
 #Setup /etc/issue
 echo -e "To login to the shell, use:\n----------------------\n   username: root\n   password: hadoop\n\nGPADMIN Credentials:\n----------------------\n   username: gpadmin\n   password: gpadmin\n" >> /etc/issue
+
+#Download Demos
+echo "Installing HAWQ Demo"
+cd /opt
+git clone https://github.com/dbbaskette/hawq-sandbox-demos.git
+cd hawq-sandbox-demos
+./setup.sh
+
+
+
 
 echo "getting ready to export VM"
 rm -f /etc/udev/rules.d/*-persistent-net.rules
