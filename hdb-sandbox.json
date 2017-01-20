@@ -4,8 +4,8 @@
     "iso_checksum": "f73c2c4dd333c202ca85ea66120cacdf",
     "headless": "false",
     "vm_basename": "HDB-Sandbox",
-    "hdbversion": "2.1.0.0",
-    "pivnet_api_key": ""
+    "hdbversion": "2.1.1.0",
+    "pivnet_api_key": "APIKEY"
   },
   "builders": [
     {

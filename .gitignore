@@ -1,4 +1,7 @@
-
 packer_cache/*
 
 .idea/*
+
+HDB-Sandbox-*
+
+saved.json

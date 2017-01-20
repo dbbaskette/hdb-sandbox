@@ -7,12 +7,12 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3098
-export PIV_NET_HDB=$PIV_NET_BASE/product_files/10038/download
-export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10039/download
-export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10415/download
+export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3466
+export PIV_NET_HDB=$PIV_NET_BASE/product_files/10946/download
+export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10947/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10951/download
 export PIV_NET_EULA=$PIV_NET_BASE/eula_acceptance
-export HDB_VERSION=2.1.0.0
+export HDB_VERSION=2.1.1.0
 export HDP_VERSION=2.5.3.0
 export AMB_VERSION=2.4.1.0
 
@@ -60,14 +60,10 @@ install_ambari_server=true ~/ambari-bootstrap/ambari-bootstrap.sh
 #ACCEPT EULA
 echo "Accept Pivotal EULA"
 echo "GOT API KEY " $1
-export headers="Authorization:Token $1"
-curl -X POST --header $headers $PIV_NET_EULA
+export headers="{Authorization:Token $1}"
+curl -X POST --header "$headers" $PIV_NET_EULA
 
-export token="pcPLExkA9svUP4pBvmW3"
-echo "Accept Pivotal EULA"
-echo "GOT API KEY " $token
-export headers="Authorization:Token $token"
-curl -X POST --header $headers $PIV_NET_EULA
+
 
 #HAWQ setup
 echo "Setting up HAWQ service defn..."
@@ -128,9 +124,9 @@ sed -i "s/rhgb//g" /boot/grub/grub.conf
 echo "setterm -blank 0" >> /etc/rc.local
 echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
 
-echo "export HDB_VERSION=2.1.0.0" >> /etc/rc.local
-echo "export HDP_VERSION=2.5.0.0-1245" >> /etc/rc.local
-echo "export AMB_VERSION=2.4.1.0" >> /etc/rc.local
+echo "export HDB_VERSION=$HDB_VERSION" >> /etc/rc.local
+echo "export HDP_VERSION=$HDP_VERSION" >> /etc/rc.local
+echo "export AMB_VERSION=$AMB_VERSION" >> /etc/rc.local
 
 
 echo "python /usr/lib/hue/tools/start_scripts/splash.py" >> /etc/rc.local
@@ -302,7 +298,8 @@ sudo -u gpadmin bash -c "echo 'source /usr/local/hawq/greenplum_path.sh' >> /hom
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
 #create a demos database - JUST IN CASE
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; createdb demos"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;createdb -p 10432 demos"
+
 
 
 echo "Installing MADlib"
@@ -314,7 +311,7 @@ echo "Installing MADlib"
 #TEMP
 
 # TEMP REPLACED BY ABOVE
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib.*gppkg"
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib*.gppkg"
 chmod +x /staging/remove_compression.sh
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh --prefix /usr/local/hawq/madlib"
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
@@ -343,6 +340,7 @@ sed -i '/^UUID/d'  /etc/sysconfig/network-scripts/ifcfg-eth0
 
 echo "reduce VM size"
 cd /opt
+yum clean all
 wget -O "/tmp/zero_machine.sh" http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
 chmod +x /tmp/zero_machine.sh
 rm -rf /staging/*
@@ -357,8 +355,5 @@ rm -rf /opt/hawq-sandbox-demos
 
 
 echo "Install is complete. Access Ambari on port 8080, Zeppelin on port 9995"
-echo "A demo HAWQ notebook is available at http://VM_ADDRESS:9995/#/notebook/2BQPFYB1X"
-echo "To take an export of this VM, shutdown and stop the VM first then export the .ova file by running below from on your local laptop (replace HDB_sandbox with the name of your VM). This will export the .ova file in your Mac's Downloads dir"
-echo "/Applications/VMware\ Fusion.app/Contents/Library/VMware\ OVF\ Tool/ovftool --acceptAllEulas ~/Documents/Virtual\ Machines.localized/HDB_sandbox.vmwarevm/HDB_sandbox.vmx ~/Downloads/HDB_sandbox.ova"
 
 exit
