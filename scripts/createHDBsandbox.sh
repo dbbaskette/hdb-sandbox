@@ -7,14 +7,14 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/3466
-export PIV_NET_HDB=$PIV_NET_BASE/product_files/10946/download
-export PIV_NET_ADDON=$PIV_NET_BASE/product_files/10947/download
+export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/4480
+export PIV_NET_HDB=$PIV_NET_BASE/product_files/15012/download
+export PIV_NET_ADDON=$PIV_NET_BASE/product_files/15011/download
 export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10951/download
 export PIV_NET_EULA=$PIV_NET_BASE/eula_acceptance
-export HDB_VERSION=2.1.1.0
-export HDP_VERSION=2.5.3.0
-export AMB_VERSION=2.4.1.0
+export HDB_VERSION=2.1.2.0
+export HDP_VERSION=2.5.0.0
+export AMB_VERSION=2.4.2.0
 
 #Customize which services to deploy and other configs
 export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN"
@@ -57,10 +57,19 @@ install_ambari_server=true ~/ambari-bootstrap/ambari-bootstrap.sh
 #git clone https://github.com/hortonworks-gallery/ambari-zeppelin-service.git /var/lib/ambari-server/resources/stacks/HDP/2.4/services/ZEPPELIN
 #sed -i.bak '/dependencies for all/a \  "ZEPPELIN_MASTER-START": ["NAMENODE-START", "DATANODE-START"],' /var/lib/ambari-server/resources/stacks/HDP/2.4/role_command_order.json
 
+
+export headers="Authorization:Token $1"
+
+
+#AUTHENTICATE
+echo "Authenticating with Pivotal Network"
+
+curl -i -H "Accept: application/json" -H "Content-Type: application/json" -H "$headers" -X GET https://network.pivotal.io/api/v2/authentication
+
+
 #ACCEPT EULA
 echo "Accept Pivotal EULA"
-echo "GOT API KEY " $1
-export headers="{Authorization:Token $1}"
+
 curl -X POST --header "$headers" $PIV_NET_EULA
 
 
@@ -269,7 +278,7 @@ curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"Req
 sleep 30
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Start ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "STARTED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 
-sleep 10
+sleep 20
 
 echo "Update Zeppelin configs for HAWQ"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
