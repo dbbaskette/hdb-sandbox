@@ -1,11 +1,12 @@
 {
   "variables": {
-    "iso_url": "http://mirrors.gigenet.com/centos/6.8/isos/x86_64/CentOS-6.8-x86_64-bin-DVD1.iso",
-    "iso_checksum": "f73c2c4dd333c202ca85ea66120cacdf",
+    "iso_url": "http://mirrors.gigenet.com/centos/7/isos/x86_64/CentOS-7-x86_64-DVD-1611.iso",
+    "iso_checksum_type": "md5",
+    "iso_checksum": "871d931b7d71cf5ecededb03c76583de",
     "headless": "false",
     "vm_basename": "HDB-Sandbox",
-    "hdbversion": "2.1.1.0",
-    "pivnet_api_key": "APIKEY"
+    "hdbversion": "2.2.2.0",
+    "apikey": "{{env `PIVNET_APIKEY`}}"
   },
   "builders": [
     {
@@ -47,7 +48,7 @@
       "http_directory": "http",
       "boot_wait": "10s",
       "boot_command": [
-        "<tab> text ksdevice=eth0 ip=dhcp ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter>"
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"
       ],
       "shutdown_command": "echo 'hadoop'|sudo -S /sbin/halt -h -p"
     },
@@ -121,37 +122,54 @@
     }
   ],
   "provisioners": [
+
     {
       "type": "shell",
       "script": "scripts/install-vmware-tools.sh"
     },
     {
-      "type": "file",
-      "source": "start_scripts",
-      "destination": "/root"
+      "type": "shell",
+       "environment_vars": [
+          "PIVNET_APIKEY={{user `apikey`}}",
+          "BUILD_NAME={{build_name}}"
+       ],
+      "script": "scripts/createHDBsandbox.sh"
     },
-    {
+     {
       "type": "file",
-      "source": "scripts/createHDBsandbox.sh",
-      "destination": "/root/createHDBsandbox.sh"
+      "source": "splash",
+      "destination": "/var"
     },
     {
       "type": "shell",
       "inline": [
-        "chmod +x /root/createHDBsandbox.sh && /root/createHDBsandbox.sh {{user `pivnet_api_key`}} {{build_name}}"
+        "cp /var/splash/splash.service /usr/lib/systemd/system/. && chmod +x /var/splash/* "
       ]
     },
     {
+      "type": "shell",
+      "inline": [
+        "systemctl enable splash.service"
+      ]
+    },
+     {
       "type": "file",
-      "source": "scripts/disableAutoStart.sh",
-      "destination": "/root/disableAutoStart.sh"
+      "source": "hadoopControl",
+      "destination": "/var"
     },
     {
       "type": "shell",
       "inline": [
-        "chmod +x /root/disableAutoStart.sh"
+        "cp /var/hadoopControl/hadoopControl.service /usr/lib/systemd/system/. && chmod +x /var/hadoopControl/hadoopControl.sh"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "systemctl enable hadoopControl.service && /var/hadoopControl/hadoopControl.sh stop"
       ]
     }
+
   ],
   "post-processors": [
     {

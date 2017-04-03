@@ -1,0 +1,11 @@
+[Unit]
+Description=Hadoop Start
+After=getty@tty1.service
+
+[Service]
+User=root
+Type=idle
+ExecStart=/var/hadoopControl/hadoopControl.sh start
+
+[Install]
+WantedBy=multi-user.target

@@ -5,3 +5,5 @@ packer_cache/*
 HDB-Sandbox-*
 
 saved.json
+
+.pivnetrc

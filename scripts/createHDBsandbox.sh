@@ -10,24 +10,26 @@
 export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/4480
 export PIV_NET_HDB=$PIV_NET_BASE/product_files/15012/download
 export PIV_NET_ADDON=$PIV_NET_BASE/product_files/15011/download
-export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/10951/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/15976/download
 export PIV_NET_EULA=$PIV_NET_BASE/eula_acceptance
-export HDB_VERSION=2.1.2.0
-export HDP_VERSION=2.5.0.0
+export HDB_VERSION=2.2.2.0
+export HDP_VERSION=2.5.3.0
 export AMB_VERSION=2.4.2.0
 
 #Customize which services to deploy and other configs
-export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN"
+export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN AMBARI_INFRA RANGER"
+
 export ambari_password="admin"
 export cluster_name=hdp
 export host_count=1
 export ambari_stack_version=2.5
+#export recommendation_strategy="ALWAYS_APPLY_DONT_OVERRIDE_CUSTOM_VALUES"
 
 ################
 # Script start #
 ################
-set -e 
-ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+set -e
+ip=$(/sbin/ip -o -4 addr list ens33 | awk '{print $4}' | cut -d/ -f1)
 
 #add /etc/hosts entry
 echo "${ip} $(hostname -f) $(hostname) sandbox" | sudo tee -a /etc/hosts
@@ -43,22 +45,32 @@ yum install -y epel-release
 yum install -y python-pip
 pip install sh
 
+
+#CENTOS 7 Stuff
+systemctl stop postfix
+systemctl stop chronyd
+yum remove -y postfix chrony
+chmod go+rw /dev/null
+systemctl disable kdump.service
+systemctl disable tuned.service
+systemctl disable vmware-tools-thinprint.service
+systemctl disable rc-local.service
+systemctl disable auditd
+systemctl disable firewalld
+systemctl disable rsyslog
+systemctl disable dmraid-activation
+systemctl disable abrt-ccpp
+
+
 yum install -y git python-argparse
 cd ~
-#git clone https://github.com/seanorama/ambari-bootstrap.git
-git clone https://github.com/dbbaskette/ambari-bootstrap.git
+git clone https://github.com/seanorama/ambari-bootstrap.git
 
- 
 #install Ambari
 echo "Installing Ambari..."
 install_ambari_server=true ~/ambari-bootstrap/ambari-bootstrap.sh
 
-#install zeppelin service defn
-#git clone https://github.com/hortonworks-gallery/ambari-zeppelin-service.git /var/lib/ambari-server/resources/stacks/HDP/2.4/services/ZEPPELIN
-#sed -i.bak '/dependencies for all/a \  "ZEPPELIN_MASTER-START": ["NAMENODE-START", "DATANODE-START"],' /var/lib/ambari-server/resources/stacks/HDP/2.4/role_command_order.json
-
-
-export headers="Authorization:Token $1"
+export headers="Authorization:Token $PIVNET_APIKEY"
 
 
 #AUTHENTICATE
@@ -79,13 +91,16 @@ echo "Setting up HAWQ service defn..."
 
 mkdir /staging
 chmod a+rx /staging
-wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_HDB
-wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_ADDON
-wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $1" $PIV_NET_MADLIB
+wget -O "/staging/hdb.tar.gz" --post-data="" --header="Authorization: Token $PIVNET_APIKEY" $PIV_NET_HDB
+wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Token $PIVNET_APIKEY" $PIV_NET_ADDON
+wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $PIVNET_APIKEY" $PIV_NET_MADLIB
 
 # TEMP DOWNLOAD OF NEW CODE
-#wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.0.1.0-1625.tar.gz
-#wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.0.1.0-1625.tar.gz
+wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.2.0.0-4026.el7.tar.gz
+wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.2.0.0-4026.el7.tar.gz
+wget -O "/staging/madlib.tar.gz"  https://s3.amazonaws.com/hdb-sandbox/madlib.tar.gz
+
+
 
 tar -xvzf /staging/hdb.tar.gz -C /staging/
 tar -xvzf /staging/hdb-addons.tar.gz -C /staging/
@@ -97,7 +112,7 @@ chkconfig httpd on
 cd /staging/hdb-2*
 ./setup_repo.sh
 cd /staging/hdb-add*
-./setup_repo.sh  
+./setup_repo.sh
 yum install -y hawq-ambari-plugin
 /var/lib/hawq/add-hawq.py -u admin -p admin --stack HDP-2.5
 
@@ -115,31 +130,37 @@ cd ~
 #wget https://github.com/dbbaskette/hdb-sandbox/raw/master/startup-HDB.zip
 #wget https://github.com/dbbaskette/hdb-sandbox/raw/meetup-lab/startup-HDB.zip
 #git clone https://github.com/dbbaskette/hdb-sandbox.git
-mkdir -p /usr/lib/hue/tools
-mv ~/start_scripts /usr/lib/hue/tools
+#mkdir -p /usr/lib/hue/tools
+#mv ~/start_scripts /usr/lib/hue/tools
 
 #unzip startup-HDB.zip -d /
-ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
+#ln -s /usr/lib/hue/tools/start_scripts/startup_script /etc/init.d/startup_script
 
 
 #rm -f startup-HDB.zip
-echo $2 > /virtualization
+echo $BUILD_NAME > /virtualization
 
 #boot in text only and remove rhgb
 #plymouth-set-default-theme text
-sed -i "s/rhgb//g" /boot/grub/grub.conf
+
+sed -i "s/rhgb//g" /boot/grub2/grub.cfg
 
 #add startup_script and splash page to startup
-echo "setterm -blank 0" >> /etc/rc.local
-echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
+#echo "setterm -blank 0" >> /etc/rc.local
+#echo "/etc/rc.d/init.d/startup_script start" >> /etc/rc.local
 
+
+echo "export TERM=linux" >> /etc/rc.local
+echo "export TERMINFO=/etc/terminfo" >> /etc/rc.local
 echo "export HDB_VERSION=$HDB_VERSION" >> /etc/rc.local
 echo "export HDP_VERSION=$HDP_VERSION" >> /etc/rc.local
 echo "export AMB_VERSION=$AMB_VERSION" >> /etc/rc.local
 
 
-echo "python /usr/lib/hue/tools/start_scripts/splash.py" >> /etc/rc.local
- 
+echo "python /root/start_scripts/splash.py" >> /etc/rc.local
+
+# CENTOS7 change
+chmod +x /etc/rc.d/rc.local
 
 #provide custom configs for HAWQ, and HDFS proxy users
 echo "Creating custom configs..."
@@ -154,10 +175,13 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
         "dfs.client.socket-timeout": "300000000",
         "dfs.client.use.legacy.blockreader.local": "false",
         "dfs.datanode.handler.count": "60",
-        "dfs.datanode.socket.write.timeout": "7200000",                                
+        "dfs.datanode.socket.write.timeout": "7200000",
         "dfs.namenode.handler.count": "600",
         "dfs.support.append": "true",
-        "dfs.replication": "1"
+        "dfs.replication": "1",
+        "dfs.namenode.safemode.threshold-pct"	: 0,
+        "dfs.namenode.safemode.extension" : 15
+
 
     },
     "hawq-site":{
@@ -180,23 +204,96 @@ cat << EOF > ~/ambari-bootstrap/deploy/configuration-custom.json
     },
     "core-site": {
         "hadoop.proxyuser.root.groups": "*",
-        "hadoop.proxyuser.root.hosts": "*",        
+        "hadoop.proxyuser.root.hosts": "*",
         "ipc.client.connection.maxidletime": "3600000",
         "ipc.client.connect.timeout": "300000",
         "ipc.server.listen.queue.size": "3300"
     },
     "zeppelin-config": {
     "zeppelin.interpreters": "org.apache.zeppelin.spark.SparkInterpreter,org.apache.zeppelin.spark.PySparkInterpreter,org.apache.zeppelin.spark.SparkSqlInterpreter,org.apache.zeppelin.spark.DepInterpreter,org.apache.zeppelin.markdown.Markdown,org.apache.zeppelin.angular.AngularInterpreter,org.apache.zeppelin.shell.ShellInterpreter,org.apache.zeppelin.jdbc.JDBCInterpreter,org.apache.zeppelin.phoenix.PhoenixInterpreter,org.apache.zeppelin.livy.LivySparkInterpreter,org.apache.zeppelin.livy.LivyPySparkInterpreter,org.apache.zeppelin.livy.LivySparkRInterpreter,org.apache.zeppelin.livy.LivySparkSQLInterpreter,org.apache.zeppelin.postgresql.PostgreSqlInterpreter,org.apache.zeppelin.file.HDFSFileInterpreter"
+    },
+
+    "admin-properties": {
+        "DB_FLAVOR": "POSTGRES",
+        "SQL_CONNECTOR_JAR" : "/usr/share/java/postgresql-jdbc.jar",
+        "db_host": "localhost:5432",
+        "db_user" : "rangeradmin",
+        "db_password" : "ranger",
+        "db_root_user" : "admin",
+        "db_root_password" : "admin",
+        "audit_db_password" : "ranger",
+        "ranger.jpa.jdbc.driver" : "org.postgresql.Driver",
+        "ranger.jpa.jdbc.url" : "jdbc:postgresql://localhost:5432/ranger",
+        "policymgr_external_url" : "http://localhost:6080"
+    },
+
+
+
+    "kms-properties":{
+        "DB_FLAVOR": "POSTGRES",
+        "SQL_CONNECTOR_JAR" : "/usr/share/java/postgresql-jdbc.jar",
+        "KMS_MASTER_KEY_PASSWD" : "ranger",
+        "db_host": "localhost:5432",
+        "db_user" : "rangeradmin",
+        "db_password" : "ranger",
+        "db_root_user" : "admin",
+        "db_root_password" : "admin"
+    },
+    "ranger-env":{
+        "ranger_admin_username" : "admin",
+        "ranger_admin_password" : "admin",
+        "ranger-yarn-plugin-enabled" : "Yes",
+        "ranger-hdfs-plugin-enabled" : "Yes",
+        "ranger-hive-plugin-enabled" : "Yes",
+        "xasecure.audit.destination.hdfs" : "false",
+        "ranger_privelege_user_jdbc_url" : "jdbc:postgresql://localhost:5432",
+        "ranger.audit.solr.urls" : "http://localhost:6083/solr/ranger_audits"
+
+    },
+    "ranger-admin-site" :{
+        "ranger.jpa.jdbc.driver" : "org.postgresql.Driver",
+        "ranger.jpa.jdbc.url" : "jdbc:postgresql://localhost:5432/ranger",
+        "ranger.audit.solr.urls" : "http://localhost:6083/solr/ranger_audits"
     }
-
-
   }
+
 }
+
 EOF
+
+
+
 
 echo "Starting cluster install..."
 
+# Prep for RANGER
+echo "Prepping System for Ranger Install"
+#wget http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm
+#rpm -ivh mysql-community-release-el7-5.noarch.rpm
+#rm -f mysql-community-release-el7-5.noarch.rpm
+#yum -y install mysql-server mysql-connector-java
+#sed -i '/socket/a bind-address="0.0.0.0"' /etc/my.cnf
+#ambari-server setup --jdbc-db=mysql --jdbc-driver=/usr/share/java/mysql-connector-java.jar
+#systemctl start mysql
 
+# Let's try Postgresql
+yum install -y postgresql-jdbc*
+chmod 644 /usr/share/java/postgresql-jdbc.jar
+ambari-server setup --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
+export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:${JAVA_JDBC_LIBS}:/usr/share/java
+
+
+
+#echo "CREATE DATABASE ranger;" | sudo -u postgres psql -U postgres
+echo "CREATE USER rangeradmin WITH PASSWORD 'ranger';" | sudo -u postgres psql -U postgres
+echo "GRANT ALL PRIVILEGES ON DATABASE ranger TO rangeradmin;" | sudo -u postgres psql -U postgres
+echo "CREATE USER admin WITH PASSWORD 'admin';" | sudo -u postgres psql -U postgres
+echo "alter user admin with superuser;" | sudo -u postgres psql -U postgres
+
+
+sed -i 's/ambari,mapred/admin,rangeradmin,ambari,mapred/g' /var/lib/pgsql/data/pg_hba.conf
+systemctl reload postgresql
+ambari-server restart
 
 #generate BP using Ambari recommendation API and deploy HDP
 cd ~/ambari-bootstrap/deploy/
@@ -268,12 +365,6 @@ cat << EOF > ~/zeppelin-hdfs.json
 EOF
 
 
-
-#echo "Pointing Zeppelin at Demos database by default"
-#sed -i 's/\"postgresql.url.*/\"postgresql.url\": \"jdbc:postgresql:\/\/localhost:10432\/gpadmin\",/g' /etc/zeppelin/conf/interpreter.json
-
-
-
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Stop ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "INSTALLED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
 sleep 30
 curl -u admin:$ambari_password -i -H 'X-Requested-By: zeppelin' -X PUT -d '{"RequestInfo": {"context" :"Start ZEPPELIN via REST"}, "Body": {"ServiceInfo": {"state": "STARTED"}}}' http://localhost:8080/api/v1/clusters/$cluster_name/services/ZEPPELIN
@@ -284,21 +375,16 @@ echo "Update Zeppelin configs for HAWQ"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-psql.json
 echo "Update Zeppelin configs for HDFS"
 curl http://localhost:9995/api/interpreter/setting -d @/root/zeppelin-hdfs.json
-#MOVED TO DEMO SCRIPTS
-#echo "Add Demo Notebook to Apache Zeppelin"
-#curl http://localhost:9995/api/notebook/import -d @/opt/hawq-sandbox-demos/HAWQ-Demonstration.json
-
-
 
 echo "Configure local connections to HAWQ and reload HAWQ configs.."
-
-ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+# Change eth0 to ens33 for RH7
+ip=$(/sbin/ip -o -4 addr list ens33 | awk '{print $4}' | cut -d/ -f1)
 
 echo "# File is generated from ${SCRIPT}" > /data/hawq/master/pg_hba.conf
 echo "local    all         gpadmin         ident" >> /data/hawq/master/pg_hba.conf
 echo "host     all         gpadmin         127.0.0.1/28    trust" >> /data/hawq/master/pg_hba.conf
 echo "host all all ${ip}/32 trust" >> /data/hawq/master/pg_hba.conf
-
+echo "local all all  md5" >> /data/hawq/master/pg_hba.conf
 
 
 # ADD PG defaults to .bashrc
@@ -309,53 +395,56 @@ sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop clu
 #create a demos database - JUST IN CASE
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;createdb -p 10432 demos"
 
-
-
 echo "Installing MADlib"
-#TEMP # HACK FOR MADLIB ISSUES
-#wget -O "/staging/madlib191.gppkg" https://s3.amazonaws.com/hdb-sandbox/madlib191.gppkg
-#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib191.gppkg"
-#yum install -y dos2unix
-#dos2unix /staging/remove_compression.sh
-#TEMP
-
-# TEMP REPLACED BY ABOVE
+cd /home/gpadmin
 sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;gppkg -i /staging/madlib*.gppkg"
-chmod +x /staging/remove_compression.sh
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh --prefix /usr/local/hawq/madlib"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/gpadmin"
-sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/demos"
-
+#chmod +x /staging/remove_compression.sh
+#sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh;/staging/remove_compression.sh --prefix /usr/local/hawq/madlib"
+sudo -u gpadmin bash -c "cd /home/gpadmin;source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/template1"
+sudo -u gpadmin bash -c "cd /home/gpadmin;source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/gpadmin"
+sudo -u gpadmin bash -c "cd /home/gpadmin;source /usr/local/hawq/greenplum_path.sh; /usr/local/hawq/madlib/bin/madpack install -s madlib -p hawq -c gpadmin@sandbox:10432/demos"
 
 #Setup /etc/issue
 echo -e "To login to the shell, use:\n----------------------\n   username: root\n   password: hadoop\n\nGPADMIN Credentials:\n----------------------\n   username: gpadmin\n   password: gpadmin\n" >> /etc/issue
 
+########################### TEMP REMOVE FOR BUILD TESTS
 #Download Demos
 echo "Installing HAWQ Demo"
 cd /opt
 git clone https://github.com/dbbaskette/hawq-sandbox-demos.git
-cd hawq-sandbox-demos
-./setup.sh
+#cd hawq-sandbox-demos
+#./setup.sh
 
+# Configure HAWQ AND RANGER
+
+mkdir -p /usr/hdp/current/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hawq
+chown -R ranger:ranger /usr/hdp/current/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hawq
+cp /usr/local/hawq/ranger/lib/*.jar /usr/hdp/current/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hawq/.
+/usr/local/hawq/ranger/bin/enable-ranger-plugin.sh -r localhost:6080 -u admin -p admin -h localhost:10432 -w gpadmin -q gpadmin
+cat << EOF >> /usr/local/hawq/etc/hawq-site.conf
+    <property>
+      <name>hawq_acl_type</name>
+      <value>"ranger</value>
+    </property>
+EOF
+sudo -u gpadmin bash -c "source /usr/local/hawq/greenplum_path.sh; hawq stop cluster -a --reload"
 
 
 
 echo "getting ready to export VM"
 rm -f /etc/udev/rules.d/*-persistent-net.rules
-sed -i '/^HWADDR/d'  /etc/sysconfig/network-scripts/ifcfg-eth0 
-sed -i '/^UUID/d'  /etc/sysconfig/network-scripts/ifcfg-eth0 
-
+sed -i '/^HWADDR/d'  /etc/sysconfig/network-scripts/ifcfg-ens33
+sed -i '/^UUID/d'  /etc/sysconfig/network-scripts/ifcfg-ens33
 
 echo "reduce VM size"
-cd /opt
 yum clean all
 wget -O "/tmp/zero_machine.sh" http://dev2.hortonworks.com.s3.amazonaws.com/stuff/zero_machine.sh
 chmod +x /tmp/zero_machine.sh
-rm -rf /staging/*
-rm -rf ~/ambari-bootsrap
-rm -rf ~/hdb-sandbox
-rm -rf /opt/hawq-sandbox-demos
+rm -rf /staging
+rm -rf /root/ambari-bootstrap
+rm -rf /root/zeppelin*
+#rm -rf /opt/hawq-sandbox-demos
+rm -rf /etc/yum.repos.d/hdb*.repo
 /tmp/zero_machine.sh
 /bin/rm -f /tmp/zero_machine.sh
 

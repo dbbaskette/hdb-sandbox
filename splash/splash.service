@@ -1,0 +1,19 @@
+[Unit]
+Description=splash
+After=getty@tty2.service
+
+
+
+[Service]
+User=root
+Type=oneshot
+ExecStart=/var/splash/splash.sh start
+ExecStop=/var/splash/splash.sh stop
+StandardInput=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+Restart=no
+
+[Install]
+WantedBy=default.target
