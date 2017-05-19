@@ -7,14 +7,15 @@
 ########################################################################################################################### 
 
 #Customize HDB install bits location
-export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/4480
-export PIV_NET_HDB=$PIV_NET_BASE/product_files/15012/download
-export PIV_NET_ADDON=$PIV_NET_BASE/product_files/15011/download
-export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/15976/download
+export PIV_NET_BASE=https://network.pivotal.io/api/v2/products/pivotal-hdb/releases/4831
+export PIV_NET_HDB=$PIV_NET_BASE/product_files/17398/download
+export PIV_NET_ADDON=$PIV_NET_BASE/product_files/17400/download
+export PIV_NET_MADLIB=$PIV_NET_BASE/product_files/20648/download
 export PIV_NET_EULA=$PIV_NET_BASE/eula_acceptance
-export HDB_VERSION=2.2.2.0
+export HDB_VERSION=2.2.0.0
 export HDP_VERSION=2.5.3.0
 export AMB_VERSION=2.4.2.0
+
 
 #Customize which services to deploy and other configs
 export ambari_services="HDFS MAPREDUCE2 YARN ZOOKEEPER HIVE TEZ HAWQ PXF SPARK ZEPPELIN AMBARI_INFRA RANGER"
@@ -23,7 +24,7 @@ export ambari_password="admin"
 export cluster_name=hdp
 export host_count=1
 export ambari_stack_version=2.5
-#export recommendation_strategy="ALWAYS_APPLY_DONT_OVERRIDE_CUSTOM_VALUES"
+export recommendation_strategy="ALWAYS_APPLY_DONT_OVERRIDE_CUSTOM_VALUES"
 
 ################
 # Script start #
@@ -65,6 +66,7 @@ systemctl disable abrt-ccpp
 yum install -y git python-argparse
 cd ~
 git clone https://github.com/seanorama/ambari-bootstrap.git
+#git clone https://github.com/dbbaskette/ambari-bootstrap.git
 
 #install Ambari
 echo "Installing Ambari..."
@@ -96,9 +98,9 @@ wget -O "/staging/hdb-addons.tar.gz" --post-data="" --header="Authorization: Tok
 wget -O "/staging/madlib.tar.gz" --post-data="" --header="Authorization: Token $PIVNET_APIKEY" $PIV_NET_MADLIB
 
 # TEMP DOWNLOAD OF NEW CODE
-wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.2.0.0-4026.el7.tar.gz
-wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.2.0.0-4026.el7.tar.gz
-wget -O "/staging/madlib.tar.gz"  https://s3.amazonaws.com/hdb-sandbox/madlib.tar.gz
+#wget -O "/staging/hdb.tar.gz" https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-2.2.0.0-4026.el7.tar.gz
+#wget -O "/staging/hdb-addons.tar.gz"  https://s3-us-west-2.amazonaws.com/hdb-concourse-ci/hdb_latest/hdb-add-ons-2.2.0.0-4026.el7.tar.gz
+#wget -O "/staging/madlib.tar.gz"  https://s3.amazonaws.com/hdb-sandbox/madlib.tar.gz
 
 
 
@@ -283,8 +285,8 @@ ambari-server setup --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-
 export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:${JAVA_JDBC_LIBS}:/usr/share/java
 
 
-
-#echo "CREATE DATABASE ranger;" | sudo -u postgres psql -U postgres
+cd /tmp
+echo "CREATE DATABASE ranger;" | sudo -u postgres psql -U postgres
 echo "CREATE USER rangeradmin WITH PASSWORD 'ranger';" | sudo -u postgres psql -U postgres
 echo "GRANT ALL PRIVILEGES ON DATABASE ranger TO rangeradmin;" | sudo -u postgres psql -U postgres
 echo "CREATE USER admin WITH PASSWORD 'admin';" | sudo -u postgres psql -U postgres

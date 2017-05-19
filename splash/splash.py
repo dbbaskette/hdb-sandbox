@@ -20,8 +20,11 @@ def make_greet_window():
     greet_win.addstr(1, 2, versionStr )
     greet_win.addstr(2, 2, "http://hortonworks.com     http://pivotal.io/")
     greet_win.addstr(3, 2, "---------------------------------------------")
-    greet_win.addstr(4, 2, "username: root      password:  hadoop")
-    greet_win.addstr(5, 2, "username: gpadmin   password:  gpadmin")
+    greet_win.addstr(4, 2, "Root Account: root      password:  hadoop")
+    greet_win.addstr(5, 2, "Apache HAWQ:  gpadmin   password:  gpadmin")
+    greet_win.addstr(6, 2, "ambari:       admin     password:  admin")
+    greet_win.addstr(7, 2, "ranger:       admin     password:  admin")
+
 
 
 def make_ip_window():
